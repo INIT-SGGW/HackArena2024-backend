@@ -1,14 +1,18 @@
 package repository
 
 import (
-	"database/sql"
+	"INIT-SGGW/hackarena-backend/model"
 	"fmt"
 	"os"
 
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
+	driver = "postgresql"
 	host   = "localhost"
 	port   = 800
 	dbname = "hackarena"
@@ -25,18 +29,34 @@ func getConnectionString() string {
 	return psqlInfo
 }
 
-func InitDB() *sql.DB {
-	psqlInfo := getConnectionString()
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err)
-	}
+// func InitDB() *sql.DB {
+// 	psqlInfo := getConnectionString()
+// 	db, err := sql.Open("postgres", psqlInfo)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Successfully connected!")
-	return db
+// 	err = db.Ping()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	fmt.Println("Successfully connected!")
+// 	return db
 
+// }
+func ConnectDataBase() *gorm.DB {
+	var err error
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	var DB *gorm.DB
+	psqlinfo := getConnectionString()
+	DB, err = gorm.Open(postgres.Open(psqlinfo))
+
+	if err != nil {
+		logger.Error("Cannot connect to database")
+	} else {
+		logger.Info("Sucesfully connected to Database")
+	}
+	DB.AutoMigrate(&model.Team{}, &model.User{})
+	return DB
 }
