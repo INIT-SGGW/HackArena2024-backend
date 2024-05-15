@@ -10,23 +10,24 @@ import (
 
 func main() {
 	logger, _ := zap.NewProduction()
+	defer logger.Sync()
 	TeamHandler := handler.NewTeamHandler(*logger)
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
 	authGroup.Use(AuthMiddleweare())
 	repository.ConnectDataBase()
-	repository.SyncDB()
+	//repository.SyncDB() // DBAutoMigration
 
-	//TODO logowanie
-	//authGroup.GET("/login",userHandler.LoginUser)
-
-	//TODO rejestracja
+	// Endpoint create the team and store the team data in database (the password is hashed)
 	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
-	r.GET("/ping", func(c *gin.Context) {
+	//TODO logowanie
+	authGroup.POST("/login", TeamHandler.LoginTeam)
+
+	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "pong",
+			"message": "I'am alive",
 		})
 	})
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
