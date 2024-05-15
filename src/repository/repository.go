@@ -29,21 +29,6 @@ func getConnectionString() string {
 	return psqlInfo
 }
 
-// func InitDB() *sql.DB {
-// 	psqlInfo := getConnectionString()
-// 	db, err := sql.Open("postgres", psqlInfo)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	err = db.Ping()
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	fmt.Println("Successfully connected!")
-// 	return db
-
-// }
 func ConnectDataBase() *gorm.DB {
 	var err error
 	logger, _ := zap.NewProduction()

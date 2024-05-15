@@ -10,7 +10,7 @@ import (
 
 func main() {
 	logger, _ := zap.NewProduction()
-	UserHandler := handler.NewUserHandler(*logger)
+	TeamHandler := handler.NewTeamHandler(*logger)
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
@@ -21,7 +21,7 @@ func main() {
 	//authGroup.GET("/login",userHandler.LoginUser)
 
 	//TODO rejestracja
-	authGroup.POST("/register", UserHandler.RegisterUser)
+	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
