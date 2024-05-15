@@ -3,6 +3,7 @@ package handler
 import (
 	"INIT-SGGW/hackarena-backend/model"
 	"INIT-SGGW/hackarena-backend/repository"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -16,9 +17,28 @@ type TeamHandler struct {
 	Handler Handler
 }
 
-type TeamCredential struct {
-	TeamName     string `json:"teamname" binding:"required"`
-	TeamPassword string `json:"password" binding:"required"`
+// Team object send to registration
+type InputTeam struct {
+	TeamName     string       `json:"teamname" binding:"required"`
+	TeamPassword string       `json:"password" binding:"required"`
+	TeamMembers  []model.User `json:"teamMembers" binding:"required"`
+}
+
+// Members of team
+// type TeamMember struct {
+// 	Name        string `json:"firstName" binding:"required"`
+// 	Surname     string `json:"lastName" binding:"required"`
+// 	Email       string `json:"email" binding:"required"`
+// 	DateOfBirth string `json:"dateOfBirth" binding:"required"`
+// 	Occupation  string `json:"occupation" binding:"required"`
+// 	IsVegan     bool   `json:"isVegan" binding:"required"`
+// 	Agreement   bool   `json:"agreement" binding:"required"`
+// }
+
+// User input on login endpoint
+type UserCredential struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 func NewTeamHandler(logger zap.Logger) *TeamHandler {
@@ -28,9 +48,10 @@ func NewTeamHandler(logger zap.Logger) *TeamHandler {
 }
 
 func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
-	var input TeamCredential
+	var input InputTeam
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
+		fmt.Println(input)
 		th.Handler.logger.Error("Register team error")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -43,7 +64,7 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 		return
 	}
 	th.Handler.logger.Info("JSON input is valid")
-	team := &model.Team{TeamName: input.TeamName, Password: hash}
+	team := &model.Team{TeamName: input.TeamName, Password: hash, Users: input.TeamMembers}
 
 	result := repository.DB.Create(&team)
 	if result.Error != nil {
@@ -55,19 +76,25 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Sucesfully created team", "TeamName": team.TeamName})
 }
 
-func (th TeamHandler) LoginTeam(ctx *gin.Context) {
-	var input TeamCredential
+func (th TeamHandler) LoginUser(ctx *gin.Context) {
+	var input UserCredential
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		th.Handler.logger.Error("Input body error")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	var dbObject UserCredential
+	row := repository.DB.Table("users").
+		Joins("INNER Join teams t ON t.id = users.team_id").Where("email = ?", input.Email).
+		Select([]string{"users.email", "t.Password"}).Find(&dbObject)
+	// row := repository.DB.Select("teams.password, users.email").Joins("inner join users on users.team_id=teams.id").Scan(&dbObject)
+	fmt.Println(dbObject)
 
-	var team model.Team
-	repository.DB.First(&team, "team_name = ?", input.TeamName)
+	// var team model.Team
+	// repository.DB.First(&team, "team_name = ?", input.TeamName)
 
-	if team.ID == 0 {
+	if row.Error != nil {
 		th.Handler.logger.Info("Invalid team name")
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"error": "Invalid password or Team Name",
@@ -75,7 +102,7 @@ func (th TeamHandler) LoginTeam(ctx *gin.Context) {
 		return
 	}
 	//Validate provided password
-	isValid := repository.CheckPasswordHash(input.TeamPassword, team.Password)
+	isValid := repository.CheckPasswordHash(input.Password, dbObject.Password)
 	if !isValid {
 		th.Handler.logger.Error("Invalid password")
 		ctx.JSON(http.StatusForbidden, gin.H{
@@ -85,7 +112,6 @@ func (th TeamHandler) LoginTeam(ctx *gin.Context) {
 	}
 	//create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": team.ID,
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	})
 
