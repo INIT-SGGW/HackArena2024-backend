@@ -24,17 +24,6 @@ type InputTeam struct {
 	TeamMembers  []model.User `json:"teamMembers" binding:"required"`
 }
 
-// Members of team
-// type TeamMember struct {
-// 	Name        string `json:"firstName" binding:"required"`
-// 	Surname     string `json:"lastName" binding:"required"`
-// 	Email       string `json:"email" binding:"required"`
-// 	DateOfBirth string `json:"dateOfBirth" binding:"required"`
-// 	Occupation  string `json:"occupation" binding:"required"`
-// 	IsVegan     bool   `json:"isVegan" binding:"required"`
-// 	Agreement   bool   `json:"agreement" binding:"required"`
-// }
-
 // User input on login endpoint
 type UserCredential struct {
 	Email    string `json:"email" binding:"required"`
@@ -76,6 +65,7 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Sucesfully created team", "TeamName": team.TeamName})
 }
 
+// TODO spilt to single responsibility functions
 func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	var input UserCredential
 
@@ -84,15 +74,11 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	//retreive password from database
 	var dbObject UserCredential
 	row := repository.DB.Table("users").
 		Joins("INNER Join teams t ON t.id = users.team_id").Where("email = ?", input.Email).
 		Select([]string{"users.email", "t.Password"}).Find(&dbObject)
-	// row := repository.DB.Select("teams.password, users.email").Joins("inner join users on users.team_id=teams.id").Scan(&dbObject)
-	fmt.Println(dbObject)
-
-	// var team model.Team
-	// repository.DB.First(&team, "team_name = ?", input.TeamName)
 
 	if row.Error != nil {
 		th.Handler.logger.Info("Invalid team name")
