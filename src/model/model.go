@@ -9,7 +9,7 @@ import (
 
 type Team struct {
 	gorm.Model
-	TeamName  string `gorm:"unique"`
+	TeamName  string `gorm:"uniqueIndex"`
 	Password  string
 	CreatedAt datatypes.Time
 	UpdatedAt datatypes.Time
@@ -22,7 +22,7 @@ type User struct {
 	TeamID      uint
 	Username    string
 	Surname     string
-	Email       string `gorm:"unique"`
+	Email       string `gorm:"index:idx_user_email,unique"`
 	DateOfBirth datatypes.Date
 	IsVegan     bool
 	Occupation  occupation `gorm:"type:occupation"`

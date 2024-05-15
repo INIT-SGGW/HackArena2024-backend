@@ -20,10 +20,19 @@ func main() {
 	//repository.SyncDB() // DBAutoMigration
 
 	// Endpoint create the team and store the team data in database (the password is hashed)
+	// Dodac pole Users[] zeby wszystkich wpisywalo do bazy (1-3)
 	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
 	//TODO logowanie
+	//Dodac logowanie przez email
+	// token JWT
 	authGroup.POST("/login", TeamHandler.LoginTeam)
+
+	//TODO
+	//authGroup.POST("/:team/adduser",TeamHandler.AddUser)
+
+	//TODO
+	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUser)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{

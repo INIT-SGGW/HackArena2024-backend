@@ -4,8 +4,11 @@ import (
 	"INIT-SGGW/hackarena-backend/model"
 	"INIT-SGGW/hackarena-backend/repository"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
 
@@ -71,6 +74,7 @@ func (th TeamHandler) LoginTeam(ctx *gin.Context) {
 		})
 		return
 	}
+	//Validate provided password
 	isValid := repository.CheckPasswordHash(input.TeamPassword, team.Password)
 	if !isValid {
 		th.Handler.logger.Error("Invalid password")
@@ -79,7 +83,27 @@ func (th TeamHandler) LoginTeam(ctx *gin.Context) {
 		})
 		return
 	}
-	//TODO return token
+	//create token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": team.ID,
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	//sign token
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_JWT")))
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to create token",
+		})
+		return
+	}
+
+	th.Handler.logger.Info("JWT token created")
+	//Add cookie
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
+
 	th.Handler.logger.Info("Sucesfully log in")
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"message": "Correct password",
