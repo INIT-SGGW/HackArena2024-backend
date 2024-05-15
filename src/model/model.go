@@ -1,8 +1,6 @@
 package model
 
 import (
-	"database/sql/driver"
-
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -20,12 +18,13 @@ type Team struct {
 type User struct {
 	gorm.Model
 	TeamID      uint
-	Username    string
-	Surname     string
-	Email       string `gorm:"index:idx_user_email,unique"`
-	DateOfBirth datatypes.Date
-	IsVegan     bool
-	Occupation  occupation `gorm:"type:occupation"`
+	Username    string         `json:"firstName" binding:"required"`
+	Surname     string         `json:"lastName" binding:"required"`
+	Email       string         `gorm:"index:idx_user_email,unique,serializer:json"`
+	DateOfBirth datatypes.Date `json:"dateOfBirth" binding:"required"`
+	IsVegan     bool           `json:"isVegan" binding:"required"`
+	Agreement   bool           `json:"agreement" binding:"required"`
+	Occupation  string         `json:"occupation" binding:"required"`
 	CreatedAt   datatypes.Time
 }
 type File struct {
@@ -34,22 +33,4 @@ type File struct {
 	//TODO file storage
 	CreatedAt datatypes.Time
 	UpdatedAt datatypes.Time
-}
-
-// Enum occupation
-type occupation string
-
-const (
-	UCZEN     occupation = "uczen"
-	STUDENT   occupation = "student"
-	ABSOLWENT occupation = "absolwent"
-	INNE      occupation = "inne"
-)
-
-func (o *occupation) Scan(value any) error {
-	*o = occupation(value.([]byte))
-	return nil
-}
-func (o occupation) Value() (driver.Value, error) {
-	return string(o), nil
 }
