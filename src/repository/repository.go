@@ -11,6 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var DB *gorm.DB
+
 const (
 	driver = "postgresql"
 	host   = "localhost"
@@ -29,11 +31,10 @@ func getConnectionString() string {
 	return psqlInfo
 }
 
-func ConnectDataBase() *gorm.DB {
+func ConnectDataBase() {
 	var err error
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
-	var DB *gorm.DB
 	psqlinfo := getConnectionString()
 	DB, err = gorm.Open(postgres.Open(psqlinfo))
 
@@ -42,6 +43,7 @@ func ConnectDataBase() *gorm.DB {
 	} else {
 		logger.Info("Sucesfully connected to Database")
 	}
+}
+func SyncDB() {
 	DB.AutoMigrate(&model.Team{}, &model.User{}, &model.File{})
-	return DB
 }

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"INIT-SGGW/hackarena-backend/model"
+	"INIT-SGGW/hackarena-backend/repository"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +15,7 @@ type TeamHandler struct {
 
 type RegisterInput struct {
 	TeamName     string `json:"teamname" binding:"required"`
-	TeamPassword string `json:"teampassword" binding:"required"`
+	TeamPassword string `json:"password" binding:"required"`
 }
 
 func NewTeamHandler(logger zap.Logger) *TeamHandler {
@@ -32,6 +34,21 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 		return
 	}
 
-	th.Handler.logger.Info("Sucesfully authorize")
-	ctx.JSON(http.StatusOK, gin.H{"message": "This is authorize register endpoint"})
+	hash, err := repository.HashPassword(input.TeamPassword)
+	if err != nil {
+		th.Handler.logger.Error("Hash password error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	th.Handler.logger.Info("JSON input is valid")
+	team := &model.Team{TeamName: input.TeamName, Password: hash}
+
+	result := repository.DB.Create(&team)
+	if result.Error != nil {
+		th.Handler.logger.Error("Cannot craete new Team")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
+		return
+	}
+	th.Handler.logger.Info("Sucesfully created team")
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Sucesfully created team", "TeamName": team.TeamName})
 }

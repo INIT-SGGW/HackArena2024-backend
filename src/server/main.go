@@ -16,6 +16,7 @@ func main() {
 	authGroup := r.Group("/api/v1")
 	authGroup.Use(AuthMiddleweare())
 	repository.ConnectDataBase()
+	repository.SyncDB()
 
 	//TODO logowanie
 	//authGroup.GET("/login",userHandler.LoginUser)

@@ -9,10 +9,10 @@ import (
 
 type Team struct {
 	gorm.Model
-	TeamName  string         // A regular string field
-	Password  string         // A pointer to a string, allowing for null values
-	CreatedAt datatypes.Time // Automatically managed by GORM for creation time
-	UpdatedAt datatypes.Time // Automatically managed by GORM for update time
+	TeamName  string `gorm:"unique"`
+	Password  string
+	CreatedAt datatypes.Time
+	UpdatedAt datatypes.Time
 	Users     []User
 	File      File
 }
@@ -22,7 +22,7 @@ type User struct {
 	TeamID      uint
 	Username    string
 	Surname     string
-	Email       string
+	Email       string `gorm:"unique"`
 	DateOfBirth datatypes.Date
 	IsVegan     bool
 	Occupation  occupation `gorm:"type:occupation"`
