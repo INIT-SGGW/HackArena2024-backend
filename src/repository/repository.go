@@ -57,6 +57,6 @@ func ConnectDataBase() *gorm.DB {
 	} else {
 		logger.Info("Sucesfully connected to Database")
 	}
-	DB.AutoMigrate(&model.Team{}, &model.User{})
+	DB.AutoMigrate(&model.Team{}, &model.User{}, &model.File{})
 	return DB
 }
