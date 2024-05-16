@@ -19,7 +19,7 @@ type TeamHandler struct {
 
 // Team object send to registration
 type InputTeam struct {
-	TeamName     string       `json:"teamname" binding:"required"`
+	TeamName     string       `json:"teamName" binding:"required"`
 	TeamPassword string       `json:"password" binding:"required"`
 	TeamMembers  []model.User `json:"teamMembers" binding:"required"`
 }
