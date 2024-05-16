@@ -15,7 +15,7 @@ func main() {
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
-	authGroup.Use(AuthMiddleweare())
+	authGroup.Use(repository.AuthMiddleweare())
 	repository.ConnectDataBase()
 	repository.SyncDB() // DBAutoMigration
 
