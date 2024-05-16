@@ -62,6 +62,7 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 		return
 	}
 	th.Handler.logger.Info("Sucesfully created team")
+	ctx.Header("Access-Control-Allow-Origin", "*")
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Sucesfully created team", "TeamName": team.TeamName})
 }
 
@@ -115,6 +116,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	//Add cookie
 	ctx.SetSameSite(http.SameSiteLaxMode)
 	ctx.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
+	ctx.Header("Access-Control-Allow-Origin", "*")
 
 	th.Handler.logger.Info("Sucesfully log in")
 	ctx.JSON(http.StatusAccepted, gin.H{

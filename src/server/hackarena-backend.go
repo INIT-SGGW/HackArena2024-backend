@@ -15,9 +15,22 @@ func main() {
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
+	optionsGroup := r.Group("/api/v1")
 	authGroup.Use(repository.AuthMiddleweare())
+	optionsGroup.Use(repository.CORSMiddleware())
 	repository.ConnectDataBase()
 	repository.SyncDB() // DBAutoMigration
+
+	optionsGroup.OPTIONS("/register", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	optionsGroup.OPTIONS("/login", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
@@ -30,6 +43,7 @@ func main() {
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUser)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
 		c.JSON(200, gin.H{
 			"message": "I'am alive",
 		})
