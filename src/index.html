@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>CORS Test</h1>
+
+<p>Call http://localhost:8080/api/v1/login</p>
+
+<script type="text/javascript">
+    window.onload = function() {
+        var apiUrl = 'http://localhost:8080/api/v1/login';
+        const json = '{"email":"jan.czomberek@wp.pl","password":"cbaba"}';
+        const jsonObj = JSON.parse(json)
+        console.log(jsonObj)
+        fetch(apiUrl,{
+            method: "POST",
+            mode: "cors",
+            cache:"no-cache",
+            headers:{
+                "Content-Type":"application/json",
+                "Hack-Arena-API-Key":'$illyGame11'
+            },
+            body: JSON.stringify(jsonObj)
+        }).then(response => response.json()).then(data => {
+            document.getElementById("res").innerHTML = data["message"]
+        }).catch(err => {
+            document.getElementById("res").innerHTML = err
+        });
+    };
+</script>
+
+<h4>Response: </h4>
+<p id="res"></p>
+
+</body>
+</html>
