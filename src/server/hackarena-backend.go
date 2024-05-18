@@ -4,6 +4,7 @@ import (
 	"INIT-SGGW/hackarena-backend/handler"
 	"INIT-SGGW/hackarena-backend/repository"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -15,18 +16,20 @@ func main() {
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
-	optionsGroup := r.Group("/api/v1")
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowHeaders = []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "accept", "origin", "Cache-Control", "X-Requested-With", "Hack-Arena-API-Key", "Connection"}
+	authGroup.Use(cors.New(corsConfig))
 	authGroup.Use(repository.AuthMiddleweare())
-	optionsGroup.Use(repository.CORSMiddleware())
 	repository.ConnectDataBase()
 	repository.SyncDB() // DBAutoMigration
 
-	optionsGroup.OPTIONS("/register", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/register", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
-	optionsGroup.OPTIONS("/login", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/login", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -43,7 +46,6 @@ func main() {
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUser)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
 		c.JSON(200, gin.H{
 			"message": "I'am alive",
 		})
