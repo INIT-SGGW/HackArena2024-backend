@@ -16,12 +16,15 @@ func main() {
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
+	// CORS middleware config
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowHeaders = []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "accept", "origin", "Cache-Control", "X-Requested-With", "Hack-Arena-API-Key", "Connection"}
+
 	authGroup.Use(cors.New(corsConfig))
 	authGroup.Use(repository.AuthMiddleweare())
 	repository.ConnectDataBase()
+
 	repository.SyncDB() // DBAutoMigration
 
 	authGroup.OPTIONS("/register", func(ctx *gin.Context) {
@@ -44,6 +47,9 @@ func main() {
 
 	//TODO endpoint to update user data
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUser)
+
+	//TODO endpoint for returning users
+	//authGroup.GET("/api/v1/:teamName", TeamHandler.ReteiveUsers)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{
