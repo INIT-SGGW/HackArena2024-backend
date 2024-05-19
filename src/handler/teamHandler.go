@@ -142,8 +142,6 @@ func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
 	//Check if session have access to the resource
 	cookieTeam, _ := ctx.Get("team")
 	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
-	fmt.Println(hasAccessTo)
-	fmt.Println(teamName)
 	if hasAccessTo != strings.ToLower(teamName) {
 		th.Handler.logger.Error("User have no access to this team")
 		ctx.JSON(http.StatusConflict, gin.H{
