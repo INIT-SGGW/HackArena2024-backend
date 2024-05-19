@@ -88,8 +88,6 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 		Joins("INNER Join teams t ON t.id = users.team_id").Where("email = ?", input.Email).
 		Select([]string{"t.id", "users.email", "t.Password"}).Find(&dbObject)
 
-	fmt.Println(dbObject)
-
 	if row.Error != nil {
 		th.Handler.logger.Info("Invalid team name")
 		ctx.JSON(http.StatusForbidden, gin.H{
@@ -149,6 +147,7 @@ func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
 			"teamName": teamName})
 		return
 	}
+	th.Handler.logger.Info("User have acces to the resource")
 
 	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
 	th.Handler.logger.Info("Retreive following team from DB",
@@ -165,7 +164,7 @@ func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
 	}
 	teamOutput.TeamName = team.TeamName
 	var users []model.User
-	repository.DB.Select("").Where("team_id = ?", team.ID).Find(&users)
+	repository.DB.Where("team_id = ?", team.ID).Find(&users)
 	if len(users) < 1 {
 		th.Handler.logger.Error("The team have 0 members")
 		ctx.JSON(http.StatusConflict, gin.H{
