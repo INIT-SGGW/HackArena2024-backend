@@ -64,7 +64,7 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 	result := repository.DB.Create(&team)
 	if result.Error != nil {
 		th.Handler.logger.Error("Cannot craete new Team")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
+		ctx.JSON(http.StatusConflict, gin.H{"error": "Cannot create new team, duplicate"})
 		return
 	}
 	th.Handler.logger.Info("Sucesfully created team")
