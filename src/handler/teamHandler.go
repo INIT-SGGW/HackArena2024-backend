@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,8 +27,15 @@ type InputTeam struct {
 
 // User input on login endpoint
 type UserCredential struct {
+	ID       string `json:"-"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+// Output team response
+type TeamOutput struct {
+	TeamName    string       `json:"teamName" binding:"required"`
+	TeamMembers []model.User `json:"teamMembers" binding:"required"`
 }
 
 func NewTeamHandler(logger zap.Logger) *TeamHandler {
@@ -58,7 +66,7 @@ func (th TeamHandler) RegisterTeam(ctx *gin.Context) {
 	result := repository.DB.Create(&team)
 	if result.Error != nil {
 		th.Handler.logger.Error("Cannot craete new Team")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
+		ctx.JSON(http.StatusConflict, gin.H{"error": "Cannot create new team, duplicate"})
 		return
 	}
 	th.Handler.logger.Info("Sucesfully created team")
@@ -78,7 +86,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	var dbObject UserCredential
 	row := repository.DB.Table("users").
 		Joins("INNER Join teams t ON t.id = users.team_id").Where("email = ?", input.Email).
-		Select([]string{"users.email", "t.Password"}).Find(&dbObject)
+		Select([]string{"t.id", "users.email", "t.Password"}).Find(&dbObject)
 
 	if row.Error != nil {
 		th.Handler.logger.Info("Invalid team name")
@@ -98,6 +106,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	}
 	//create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": dbObject.ID,
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	})
 
@@ -114,11 +123,57 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	th.Handler.logger.Info("JWT token created")
 	//Add cookie
 	ctx.SetSameSite(http.SameSiteLaxMode)
-	ctx.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
+	ctx.SetCookie("HACK-Arena-Authorization", tokenString, 3600*24, "", "", false, true)
 
 	th.Handler.logger.Info("Sucesfully log in")
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"message": "Correct password",
 	})
+
+}
+
+func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
+	teamName := ctx.Param("teamname")
+	var teamOutput TeamOutput
+	var team model.Team
+
+	//Check if session have access to the resource
+	cookieTeam, _ := ctx.Get("team")
+	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
+	if hasAccessTo != strings.ToLower(teamName) {
+		th.Handler.logger.Error("User have no access to this team")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "This user have no acces to this team",
+			"teamName": teamName})
+		return
+	}
+	th.Handler.logger.Info("User have acces to the resource")
+
+	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
+	th.Handler.logger.Info("Retreive following team from DB",
+		zap.String("teamName", team.TeamName),
+		zap.Uint("team_id", team.ID))
+
+	if team.ID == 0 || row.Error != nil {
+		th.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+	teamOutput.TeamName = team.TeamName
+	var users []model.User
+	repository.DB.Where("team_id = ?", team.ID).Find(&users)
+	if len(users) < 1 {
+		th.Handler.logger.Error("The team have 0 members")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team members",
+			"teamName": teamName})
+		return
+	}
+	teamOutput.TeamMembers = users
+
+	ctx.JSON(http.StatusOK, teamOutput)
 
 }

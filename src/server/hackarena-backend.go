@@ -38,18 +38,23 @@ func main() {
 		})
 	})
 
+	authGroup.OPTIONS("/:teamname/users", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+
 	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
 	authGroup.POST("/login", TeamHandler.LoginUser)
 
-	//TODO endpoint to add users to the team
-	//authGroup.POST("/:team/adduser",TeamHandler.AddUser)
+	authGroup.GET("/:teamname/users", repository.CookieAuth, TeamHandler.ReteiveUsers)
 
 	//TODO endpoint to update user data
-	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUser)
+	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUsers)
 
-	//TODO endpoint for returning users
-	//authGroup.GET("/api/v1/:teamName", TeamHandler.ReteiveUsers)
+	//TODO endpoint to add users to the team
+	//authGroup.POST("/:team/adduser",TeamHandler.AddUser)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{
