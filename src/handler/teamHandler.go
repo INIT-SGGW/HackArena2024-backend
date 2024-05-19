@@ -30,6 +30,12 @@ type UserCredential struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// Output team response
+type TeamOutput struct {
+	TeamName    string       `json:"teamName" binding:"required"`
+	TeamMembers []model.User `json:"teamMembers" binding:"required"`
+}
+
 func NewTeamHandler(logger zap.Logger) *TeamHandler {
 	return &TeamHandler{
 		Handler: *NewHandler(logger),
@@ -120,5 +126,38 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"message": "Correct password",
 	})
+
+}
+
+func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
+	teamName := ctx.Param("teamname")
+	var teamOutput TeamOutput
+	var team model.Team
+	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
+	th.Handler.logger.Info("Retreive following team from DB",
+		zap.String("teamName", team.TeamName),
+		zap.Uint("team_id", team.ID))
+
+	if team.ID == 0 || row.Error != nil {
+		th.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+	teamOutput.TeamName = team.TeamName
+	var users []model.User
+	repository.DB.Select("").Where("team_id = ?", team.ID).Find(&users)
+	if len(users) < 1 {
+		th.Handler.logger.Error("The team have 0 members")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team members",
+			"teamName": teamName})
+		return
+	}
+	teamOutput.TeamMembers = users
+
+	ctx.JSON(http.StatusOK, teamOutput)
 
 }
