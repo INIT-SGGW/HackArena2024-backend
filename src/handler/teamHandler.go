@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,7 @@ type InputTeam struct {
 
 // User input on login endpoint
 type UserCredential struct {
+	ID       string `json:"-"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
@@ -84,7 +86,9 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	var dbObject UserCredential
 	row := repository.DB.Table("users").
 		Joins("INNER Join teams t ON t.id = users.team_id").Where("email = ?", input.Email).
-		Select([]string{"users.email", "t.Password"}).Find(&dbObject)
+		Select([]string{"t.id", "users.email", "t.Password"}).Find(&dbObject)
+
+	fmt.Println(dbObject)
 
 	if row.Error != nil {
 		th.Handler.logger.Info("Invalid team name")
@@ -104,6 +108,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	}
 	//create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": dbObject.ID,
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	})
 
@@ -120,7 +125,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	th.Handler.logger.Info("JWT token created")
 	//Add cookie
 	ctx.SetSameSite(http.SameSiteLaxMode)
-	ctx.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
+	ctx.SetCookie("HACK-Arena-Authorization", tokenString, 3600*24, "", "", false, true)
 
 	th.Handler.logger.Info("Sucesfully log in")
 	ctx.JSON(http.StatusAccepted, gin.H{
@@ -133,6 +138,20 @@ func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
 	teamName := ctx.Param("teamname")
 	var teamOutput TeamOutput
 	var team model.Team
+
+	//Check if session have access to the resource
+	cookieTeam, _ := ctx.Get("team")
+	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
+	fmt.Println(hasAccessTo)
+	fmt.Println(teamName)
+	if hasAccessTo != strings.ToLower(teamName) {
+		th.Handler.logger.Error("User have no access to this team")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "This user have no acces to this team",
+			"teamName": teamName})
+		return
+	}
+
 	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
 	th.Handler.logger.Info("Retreive following team from DB",
 		zap.String("teamName", team.TeamName),

@@ -49,7 +49,7 @@ func main() {
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUser)
 
 	//TODO endpoint for returning users
-	authGroup.GET("/:teamname", TeamHandler.ReteiveUsers)
+	authGroup.GET("/:teamname", repository.CookieAuth, TeamHandler.ReteiveUsers)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{
