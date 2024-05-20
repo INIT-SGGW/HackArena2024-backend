@@ -28,6 +28,7 @@ type InputTeam struct {
 // User input on login endpoint
 type UserCredential struct {
 	ID       string `json:"-"`
+	TeamName string `json:"-"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
@@ -86,7 +87,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	var dbObject UserCredential
 	row := repository.DB.Table("users").
 		Joins("INNER Join teams t ON t.id = users.team_id").Where("email = ?", input.Email).
-		Select([]string{"t.id", "users.email", "t.Password"}).Find(&dbObject)
+		Select([]string{"t.id", "t.team_name", "users.email", "t.Password"}).Find(&dbObject)
 
 	if row.Error != nil {
 		th.Handler.logger.Info("Invalid team name")
@@ -127,8 +128,8 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 
 	th.Handler.logger.Info("Sucesfully log in")
 	ctx.JSON(http.StatusAccepted, gin.H{
-		"message": "Correct password",
-		"teamID":  dbObject.ID,
+		"message":  "Correct password",
+		"teamName": dbObject.TeamName,
 	})
 
 }
