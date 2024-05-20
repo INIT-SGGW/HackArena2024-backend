@@ -128,6 +128,7 @@ func (th TeamHandler) LoginUser(ctx *gin.Context) {
 	th.Handler.logger.Info("Sucesfully log in")
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"message": "Correct password",
+		"teamID":  dbObject.ID,
 	})
 
 }
