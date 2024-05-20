@@ -18,7 +18,7 @@ func main() {
 	authGroup := r.Group("/api/v1")
 	// CORS middleware config
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowOrigins = []string{"http://localhost:*", "https://hackarena.pl"}
 	corsConfig.AllowHeaders = []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "accept", "origin", "Cache-Control", "X-Requested-With", "Hack-Arena-API-Key", "Connection"}
 
 	authGroup.Use(cors.New(corsConfig))
