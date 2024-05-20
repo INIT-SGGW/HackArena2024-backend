@@ -4,7 +4,6 @@ import (
 	"INIT-SGGW/hackarena-backend/handler"
 	"INIT-SGGW/hackarena-backend/repository"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -17,11 +16,12 @@ func main() {
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
 	// CORS middleware config
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:*", "https://hackarena.pl"}
-	corsConfig.AllowHeaders = []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "accept", "origin", "Cache-Control", "X-Requested-With", "Hack-Arena-API-Key", "Connection"}
+	// corsConfig := cors.DefaultConfig()
+	// corsConfig.AllowOrigins = []string{"https://hackarena.pl", "http://localhost:5500"}
+	// corsConfig.AllowMethods = []string{"PUT", "OPTIONS", "GET", "POST"}
+	// corsConfig.AllowHeaders = []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "accept", "origin", "Cache-Control", "X-Requested-With", "Hack-Arena-API-Key", "Connection"}
 
-	authGroup.Use(cors.New(corsConfig))
+	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
 	repository.ConnectDataBase()
 
@@ -43,7 +43,18 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/logout", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
+	authGroup.POST("/logout", func(ctx *gin.Context) {
+		ctx.SetCookie("HACK-Arena-Authorization", "", -1, "", "", false, true)
+		ctx.JSON(200, gin.H{
+			"message": "user logout",
+		})
+	})
 	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
 	authGroup.POST("/login", TeamHandler.LoginUser)
