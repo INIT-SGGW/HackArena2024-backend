@@ -15,12 +15,6 @@ func main() {
 
 	r := gin.Default()
 	authGroup := r.Group("/api/v1")
-	// CORS middleware config
-	// corsConfig := cors.DefaultConfig()
-	// corsConfig.AllowOrigins = []string{"https://hackarena.pl", "http://localhost:5500"}
-	// corsConfig.AllowMethods = []string{"PUT", "OPTIONS", "GET", "POST"}
-	// corsConfig.AllowHeaders = []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "accept", "origin", "Cache-Control", "X-Requested-With", "Hack-Arena-API-Key", "Connection"}
-
 	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
 	repository.ConnectDataBase()

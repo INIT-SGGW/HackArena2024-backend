@@ -6,6 +6,7 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -13,20 +14,24 @@ import (
 
 var DB *gorm.DB
 
-const (
-	driver = "postgresql"
-	host   = "localhost"
-	port   = 800
-	dbname = "hackarena"
-)
-
 func getConnectionString() string {
+	viper.AddConfigPath("/etc/hackarena-backend/config") //Base config path for application
+	viper.SetConfigName("dbconf")
+	viper.SetConfigType("env")
+	viper.AutomaticEnv()
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Println("Error in reading config", viper.AllKeys())
+		os.Exit(1)
+	}
+
 	user := os.Getenv("HACKDB_USER")
 	password := os.Getenv("HACKDB_PWD")
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+		viper.GetString("DB_HOST"), viper.GetInt("DB_PORT"), user, password, viper.GetString("DB_NAME"))
 
 	return psqlInfo
 }
