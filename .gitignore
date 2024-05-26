@@ -21,4 +21,4 @@
 go.work
 .vscode/
 src/hackarena-backend
-.config/
+src/server/*.env
