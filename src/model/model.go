@@ -20,7 +20,7 @@ type User struct {
 	TeamID      uint
 	Username    string         `json:"firstName" binding:"required"`
 	Surname     string         `json:"lastName" binding:"required"`
-	Email       string         `gorm:"index:idx_user_email,unique,serializer:json"`
+	Email       string         `gorm:"index:idx_user_email,unique,serializer:json" json:"email" binding:"required"`
 	DateOfBirth datatypes.Date `json:"dateOfBirth" binding:"required"`
 	IsVegan     bool           `json:"isVegan" binding:"required"`
 	Agreement   bool           `json:"agreement" binding:"required"`

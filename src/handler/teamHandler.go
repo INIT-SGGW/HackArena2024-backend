@@ -25,6 +25,12 @@ type InputTeam struct {
 	TeamMembers  []model.User `json:"teamMembers" binding:"required"`
 }
 
+// Team object send for update
+type UpdateTeam struct {
+	TeamName    string       `json:"teamName" binding:"required"`
+	TeamMembers []model.User `json:"teamMembers" binding:"required"`
+}
+
 // User input on login endpoint
 type UserCredential struct {
 	ID       string `json:"-"`
@@ -177,5 +183,27 @@ func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
 	teamOutput.TeamMembers = users
 
 	ctx.JSON(http.StatusOK, teamOutput)
+
+}
+
+func (th TeamHandler) UpdeteTeam(ctx *gin.Context) {
+
+	teamName := ctx.Param("teamname")
+	// var teamOutput TeamOutput
+	// var team model.Team
+
+	//Check if session have access to the resource
+	cookieTeam, _ := ctx.Get("team")
+	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
+	if hasAccessTo != strings.ToLower(teamName) {
+		th.Handler.logger.Error("User have no access to this team")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "This user have no acces to this team",
+			"teamName": teamName})
+		return
+	}
+
+	th.Handler.logger.Info("User have acces to the resource")
+	ctx.String(http.StatusOK, "Team Update endpoint")
 
 }
