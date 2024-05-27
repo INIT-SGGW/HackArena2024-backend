@@ -25,6 +25,12 @@ type InputTeam struct {
 	TeamMembers  []model.User `json:"teamMembers" binding:"required"`
 }
 
+// Team object send for update
+type UpdateTeam struct {
+	TeamName    string       `json:"teamName" binding:"required"`
+	TeamMembers []model.User `json:"teamMembers" binding:"required"`
+}
+
 // User input on login endpoint
 type UserCredential struct {
 	ID       string `json:"-"`
@@ -177,5 +183,49 @@ func (th TeamHandler) ReteiveUsers(ctx *gin.Context) {
 	teamOutput.TeamMembers = users
 
 	ctx.JSON(http.StatusOK, teamOutput)
+
+}
+
+func (th TeamHandler) UpdeteTeam(ctx *gin.Context) {
+
+	teamName := ctx.Param("teamname")
+	var teamUpdateBody UpdateTeam
+	var team model.Team
+
+	//Check if session have access to the resource
+	cookieTeam, _ := ctx.Get("team")
+	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
+	if hasAccessTo != strings.ToLower(teamName) {
+		th.Handler.logger.Error("User have no access to this team")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "This user have no acces to this team",
+			"teamName": teamName})
+		return
+	}
+	th.Handler.logger.Info("User have acces to the resource")
+
+	if err := ctx.ShouldBindJSON(&teamUpdateBody); err != nil {
+		th.Handler.logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
+	if team.ID == 0 || row.Error != nil {
+		th.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+	team.TeamName = teamUpdateBody.TeamName
+	repository.DB.Model(&team).Association("Users")
+	repository.DB.Unscoped().Model(&team).Association("Users").Unscoped().Clear()
+	repository.DB.Model(&team).Association("Users").Append(teamUpdateBody.TeamMembers)
+	repository.DB.Model(&team).Updates(team)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Team Sucesfully updated",
+		"UpdateData": teamUpdateBody})
 
 }
