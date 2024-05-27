@@ -229,3 +229,22 @@ func (th TeamHandler) UpdeteTeam(ctx *gin.Context) {
 		"UpdateData": teamUpdateBody})
 
 }
+
+//TODO add email logic to send password reset link
+
+func (th TeamHandler) ChangePassword(ctx *gin.Context) {
+	teamName := ctx.Param("teamname")
+
+	//Check if session have access to the resource
+	cookieTeam, _ := ctx.Get("team")
+	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
+	if hasAccessTo != strings.ToLower(teamName) {
+		th.Handler.logger.Error("User have no access to this team")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "This user have no acces to this team",
+			"teamName": teamName})
+		return
+	}
+	th.Handler.logger.Info("User have acces to the resource")
+	ctx.String(200, "Reach endpoint")
+}
