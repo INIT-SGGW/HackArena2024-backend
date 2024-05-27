@@ -220,7 +220,6 @@ func (th TeamHandler) UpdeteTeam(ctx *gin.Context) {
 		return
 	}
 	team.TeamName = teamUpdateBody.TeamName
-	// team.Users = teamUpdateBody.TeamMembers
 	repository.DB.Model(&team).Association("Users")
 	repository.DB.Unscoped().Model(&team).Association("Users").Unscoped().Clear()
 	repository.DB.Model(&team).Association("Users").Append(teamUpdateBody.TeamMembers)
