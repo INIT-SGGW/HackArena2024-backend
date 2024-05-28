@@ -48,6 +48,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/:teamname/changepassword", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/logout", func(ctx *gin.Context) {
 		ctx.SetCookie("HACK-Arena-Authorization", "", -1, "", "", false, true)
@@ -62,6 +67,8 @@ func main() {
 	authGroup.GET("/:teamname/users", repository.CookieAuth, TeamHandler.ReteiveUsers)
 
 	authGroup.POST("/:teamname/update", repository.CookieAuth, TeamHandler.UpdeteTeam)
+
+	authGroup.POST("/:teamname/changepassword", repository.CookieAuth, TeamHandler.ChangePassword)
 
 	//TODO endpoint to update user data
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUsers)
