@@ -39,6 +39,12 @@ type UserCredential struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// User input for password change
+type PasswordChange struct {
+	Email       string `json:"email"`
+	NewPassword string `json:"password"`
+}
+
 // Output team response
 type TeamOutput struct {
 	TeamName    string       `json:"teamName" binding:"required"`
@@ -223,7 +229,7 @@ func (th TeamHandler) UpdeteTeam(ctx *gin.Context) {
 	repository.DB.Model(&team).Association("Users")
 	repository.DB.Unscoped().Model(&team).Association("Users").Unscoped().Clear()
 	repository.DB.Model(&team).Association("Users").Append(teamUpdateBody.TeamMembers)
-	repository.DB.Model(&team).Updates(team)
+	repository.DB.Model(&team).Where("ID = ?", team.ID).Updates(team)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Team Sucesfully updated",
 		"UpdateData": teamUpdateBody})
@@ -234,6 +240,8 @@ func (th TeamHandler) UpdeteTeam(ctx *gin.Context) {
 
 func (th TeamHandler) ChangePassword(ctx *gin.Context) {
 	teamName := ctx.Param("teamname")
+	var newCredentials PasswordChange
+	var team model.Team
 
 	//Check if session have access to the resource
 	cookieTeam, _ := ctx.Get("team")
@@ -246,5 +254,40 @@ func (th TeamHandler) ChangePassword(ctx *gin.Context) {
 		return
 	}
 	th.Handler.logger.Info("User have acces to the resource")
-	ctx.String(200, "Reach endpoint")
+
+	if err := ctx.ShouldBindJSON(&newCredentials); err != nil {
+		th.Handler.logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	th.Handler.logger.Info("Body was sucesfully binded")
+
+	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
+	th.Handler.logger.Info("Retreive following team from DB",
+		zap.String("teamName", team.TeamName),
+		zap.Uint("team_id", team.ID))
+
+	if team.ID == 0 || row.Error != nil {
+		th.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+
+	hash, err := repository.HashPassword(newCredentials.NewPassword)
+	if err != nil {
+		th.Handler.logger.Error("Hash password error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	th.Handler.logger.Info("Password was Hashed")
+	team.Password = hash
+	repository.DB.Model(&team).Updates(team)
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"message":  "Sucesfully updated password",
+		"teamName": team.TeamName,
+	})
 }
