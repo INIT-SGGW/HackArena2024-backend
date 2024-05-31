@@ -29,8 +29,8 @@ type User struct {
 }
 type File struct {
 	gorm.Model
-	TeamID uint
-	//TODO file storage
+	TeamID    uint
+	FilePath  string
 	CreatedAt datatypes.Time
 	UpdatedAt datatypes.Time
 }

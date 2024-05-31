@@ -12,9 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+type DBConfig struct {
+	Driver   string `mapstucture:"DB_DRIVER"`
+	Host     string `mapstructure:"DB_HOST"`
+	Port     int    `mapstructure:"DB_PORT"`
+	Name     string `mapstructure:"DB_NAME"`
+	FilePath string `mapstructure:"DB_FILE_STORAGE"`
+}
 
-func getConnectionString() string {
+var DB *gorm.DB
+var Config *DBConfig
+
+func InitializeConfig() {
 	viper.AddConfigPath("/etc/hackarena-backend/config") //Base config path for application
 	viper.SetConfigName("dbconf")
 	viper.SetConfigType("env")
@@ -26,12 +35,19 @@ func getConnectionString() string {
 		os.Exit(1)
 	}
 
+	if err := viper.Unmarshal(&Config); err != nil {
+		fmt.Println("Error in marshaling config", viper.AllKeys())
+		os.Exit(1)
+	}
+}
+
+func getConnectionString() string {
 	user := os.Getenv("HACKDB_USER")
 	password := os.Getenv("HACKDB_PWD")
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		viper.GetString("DB_HOST"), viper.GetInt("DB_PORT"), user, password, viper.GetString("DB_NAME"))
+		Config.Host, Config.Port, user, password, Config.Name)
 
 	return psqlInfo
 }
