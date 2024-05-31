@@ -3,6 +3,7 @@ package handler
 import (
 	"INIT-SGGW/hackarena-backend/model"
 	"INIT-SGGW/hackarena-backend/repository"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type FileHandler struct {
@@ -25,7 +27,8 @@ func NewFileHandler(logger zap.Logger) *FileHandler {
 func (fh FileHandler) UploadFile(ctx *gin.Context) {
 
 	teamName := ctx.Param("teamname")
-	//var team model.Team
+	var team model.Team
+	var fileModel model.File
 
 	//Check if session have access to the resource
 	cookieTeam, _ := ctx.Get("team")
@@ -46,8 +49,9 @@ func (fh FileHandler) UploadFile(ctx *gin.Context) {
 		ctx.JSON(http.StatusNoContent, gin.H{"error": err.Error()})
 		return
 	}
-	ext := regexp.MustCompile(`.(?:r\d\d|r\d\d\d|zip)`)
 
+	// Check file extension
+	ext := regexp.MustCompile(`.(?:r\d\d|r\d\d\d|zip)`)
 	if !ext.MatchString(file.Filename) {
 		fh.Handler.logger.Error("Wrong extension error")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "The file do not have .zip extension"})
@@ -69,9 +73,44 @@ func (fh FileHandler) UploadFile(ctx *gin.Context) {
 	fh.Handler.logger.Info("File sucesfully saved",
 		zap.String("savedPath", dst))
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "File was sucesfully uploaded",
+	// Save file path to database
+	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
+	fh.Handler.logger.Info("Retreive following team from DB",
+		zap.String("teamName", team.TeamName),
+		zap.Uint("team_id", team.ID))
+
+	if team.ID == 0 || row.Error != nil {
+		fh.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+	row = repository.DB.Where("team_id = ?", team.ID).First(&fileModel)
+
+	if !errors.Is(row.Error, gorm.ErrRecordNotFound) {
+		ctx.JSON(http.StatusOK, gin.H{"message": "File was sucesfully overwritten",
+			"fileName": file.Filename,
+		})
+		return
+	}
+
+	fileModel.TeamID = team.ID
+	fileModel.FilePath = dst
+	result := repository.DB.Save(&fileModel)
+	if result.Error != nil {
+		fh.Handler.logger.Error("Error during DB save")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Error during DB save",
+			"teamName": teamName,
+			"file":     file.Filename,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "File was sucesfully uploaded and saved in DB",
 		"fileName": file.Filename,
 	})
 
-	// ctx.String(http.StatusAccepted, "Endpoint was reached")
 }
