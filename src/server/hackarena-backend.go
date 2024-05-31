@@ -15,6 +15,7 @@ func main() {
 	FileHandler := handler.NewFileHandler(*logger)
 
 	r := gin.Default()
+	r.MaxMultipartMemory = 8 << 20
 	authGroup := r.Group("/api/v1")
 	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
