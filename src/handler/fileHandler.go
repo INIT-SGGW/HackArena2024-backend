@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -90,7 +91,7 @@ func (fh FileHandler) UploadFile(ctx *gin.Context) {
 	row = repository.DB.Where("team_id = ?", team.ID).First(&fileModel)
 
 	if !errors.Is(row.Error, gorm.ErrRecordNotFound) {
-		ctx.JSON(http.StatusOK, gin.H{"message": "File was sucesfully overwritten",
+		ctx.JSON(http.StatusCreated, gin.H{"message": "File was sucesfully overwritten",
 			"fileName": file.Filename,
 		})
 		return
@@ -109,8 +110,68 @@ func (fh FileHandler) UploadFile(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "File was sucesfully uploaded and saved in DB",
+	ctx.JSON(http.StatusCreated, gin.H{"message": "File was sucesfully uploaded and saved in DB",
 		"fileName": file.Filename,
 	})
 
+}
+
+func (fh FileHandler) DownloadFiles(ctx *gin.Context) {
+	teamName := ctx.Param("teamname")
+	var team model.Team
+	var file model.File
+
+	row := repository.DB.Select("id").Where("team_name = ?", teamName).Find(&team)
+
+	if team.ID == 0 || row.Error != nil {
+		fh.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find team for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+
+	row = repository.DB.Select("file_path").Where("team_id = ?", team.ID).Find(&file)
+	if errors.Is(row.Error, gorm.ErrRecordNotFound) {
+		fh.Handler.logger.Error("Invalid team name")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"error":    "Cannot find file for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+	fh.Handler.logger.Info("Start processing file",
+		zap.String("teamName", teamName),
+		zap.String("filePath", file.FilePath))
+
+	fileData, err := os.Open(file.FilePath)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer fileData.Close()
+
+	fileHeader := make([]byte, 512)
+	_, err = fileData.Read(fileHeader)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+	fileContentType := http.DetectContentType(fileHeader)
+	//Get the file info
+	fileInfo, err := fileData.Stat()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get file info"})
+		return
+	}
+
+	ctx.Header("Content-Description", "File Transfer")
+	ctx.Header("Content-Transfer-Encoding", "binary")
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip", teamName))
+	ctx.Header("Content-Type", fileContentType)
+	ctx.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	ctx.File(file.FilePath)
+
+	ctx.String(http.StatusOK, "Endpoint sucesfully reached")
 }

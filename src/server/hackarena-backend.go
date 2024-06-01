@@ -81,6 +81,8 @@ func main() {
 
 	authGroup.POST("/:teamname/upload/file", repository.CookieAuth, FileHandler.UploadFile)
 
+	authGroup.GET("/admin/download/:teamname/file", FileHandler.DownloadFiles)
+
 	//TODO endpoint to update user data
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUsers)
 
