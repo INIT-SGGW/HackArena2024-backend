@@ -12,11 +12,14 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	TeamHandler := handler.NewTeamHandler(*logger)
+	FileHandler := handler.NewFileHandler(*logger)
 
 	r := gin.Default()
+	r.MaxMultipartMemory = 8 << 20
 	authGroup := r.Group("/api/v1")
 	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
+	repository.InitializeConfig()
 	repository.ConnectDataBase()
 
 	repository.SyncDB() // DBAutoMigration
@@ -54,6 +57,12 @@ func main() {
 		})
 	})
 
+	authGroup.OPTIONS("/:teamname/upload/file", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+
 	authGroup.POST("/logout", func(ctx *gin.Context) {
 		ctx.SetCookie("HACK-Arena-Authorization", "", -1, "", "", false, true)
 		ctx.JSON(200, gin.H{
@@ -69,6 +78,10 @@ func main() {
 	authGroup.POST("/:teamname/update", repository.CookieAuth, TeamHandler.UpdeteTeam)
 
 	authGroup.POST("/:teamname/changepassword", repository.CookieAuth, TeamHandler.ChangePassword)
+
+	authGroup.POST("/:teamname/upload/file", repository.CookieAuth, FileHandler.UploadFile)
+
+	authGroup.GET("/admin/download/:teamname/file", FileHandler.DownloadFiles)
 
 	//TODO endpoint to update user data
 	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUsers)
