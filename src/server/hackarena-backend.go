@@ -62,6 +62,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/admin/download/:teamname/file", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/logout", func(ctx *gin.Context) {
 		ctx.SetCookie("HACK-Arena-Authorization", "", -1, "", "", false, true)
