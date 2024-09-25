@@ -16,7 +16,7 @@ type Member struct {
 	gorm.Model
 	TeamID         uint
 	Email          string `gorm:"index:idx_user_email,unique"`
-	Password       *string
+	Password       string
 	FirstName      *string
 	LastName       *string
 	DateOfBirth    *datatypes.Date
