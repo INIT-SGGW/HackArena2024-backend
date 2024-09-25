@@ -7,30 +7,22 @@ import (
 
 type Team struct {
 	gorm.Model
-	TeamName  string `gorm:"uniqueIndex"`
-	Password  string
-	CreatedAt datatypes.Time
-	UpdatedAt datatypes.Time
-	Users     []User
-	File      File
+	TeamName          string `gorm:"uniqueIndex"`
+	VerificationToken string
+	Members           []Member
 }
 
-type User struct {
+type Member struct {
 	gorm.Model
-	TeamID      uint
-	Username    string         `json:"firstName" binding:"required"`
-	Surname     string         `json:"lastName" binding:"required"`
-	Email       string         `gorm:"index:idx_user_email,unique,serializer:json" json:"email" binding:"required"`
-	DateOfBirth datatypes.Date `json:"dateOfBirth" binding:"required"`
-	IsVegan     bool           `json:"isVegan" binding:"required"`
-	Agreement   bool           `json:"agreement" binding:"required"`
-	Occupation  string         `json:"occupation" binding:"required"`
-	CreatedAt   datatypes.Time
-}
-type File struct {
-	gorm.Model
-	TeamID    uint
-	FilePath  string
-	CreatedAt datatypes.Time
-	UpdatedAt datatypes.Time
+	TeamID         uint
+	Email          string `gorm:"index:idx_user_email,unique"`
+	Password       *string
+	FirstName      *string
+	LastName       *string
+	DateOfBirth    *datatypes.Date
+	Occupation     *string
+	DietPrefernces *string
+	Aggrement      bool
+	School         *string
+	IsVerified     bool
 }
