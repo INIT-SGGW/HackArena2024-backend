@@ -14,8 +14,8 @@ type GetTeamResponse struct {
 
 // Struct representing team member in response for Get /team endpoint
 type GetTeamMemberResponse struct {
-	Email     string `json:"email"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Verified  bool   `json:"verified"`
+	Email     string  `json:"email"`
+	FirstName *string `json:"firstName"`
+	LastName  *string `json:"lastName"`
+	Verified  bool    `json:"verified"`
 }

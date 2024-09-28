@@ -95,7 +95,7 @@ func (uh UserAccountHandler) LoginUser(ctx *gin.Context) {
 	if err != nil {
 		uh.Handler.logger.Error("Error marshaling response")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create token",
+			"error": "Response marshal failed",
 		})
 		return
 	}
