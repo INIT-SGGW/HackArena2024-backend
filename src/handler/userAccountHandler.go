@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -110,57 +109,60 @@ func (uh UserAccountHandler) LoginUser(ctx *gin.Context) {
 func (uh UserAccountHandler) ChangePassword(ctx *gin.Context) {
 	defer uh.Handler.logger.Sync()
 
-	teamName := ctx.Param("teamname")
-	var newCredentials model.ChangePasswordRequest
-	var team model.Team
+	var changePasswordRequest model.ChangePasswordRequest
 
-	//Check if session have access to the resource
-	cookieTeam, _ := ctx.Get("team")
-	hasAccessTo := strings.ToLower(cookieTeam.(model.Team).TeamName)
-	if hasAccessTo != strings.ToLower(teamName) {
-		uh.Handler.logger.Error("User have no access to this team")
-		ctx.JSON(http.StatusConflict, gin.H{
-			"error":    "This user have no acces to this team",
-			"teamName": teamName})
-		return
-	}
-	uh.Handler.logger.Info("User have acces to the resource")
-
-	if err := ctx.ShouldBindJSON(&newCredentials); err != nil {
+	if err := ctx.ShouldBindJSON(&changePasswordRequest); err != nil {
 		uh.Handler.logger.Error("Input body error")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	uh.Handler.logger.Info("Body was sucesfully binded")
+	uh.Handler.logger.Info("The JSON is valid")
 
-	row := repository.DB.Select("team_name", "id").Where("team_name = ?", teamName).Find(&team)
-	uh.Handler.logger.Info("Retreive following team from DB",
-		zap.String("teamName", team.TeamName),
-		zap.Uint("team_id", team.ID))
+	uh.Handler.logger.Info("Checking if user have access to requested team")
 
-	if team.ID == 0 || row.Error != nil {
-		uh.Handler.logger.Error("Invalid team name")
-		ctx.JSON(http.StatusConflict, gin.H{
-			"error":    "Cannot find team for the teamname",
-			"teamName": teamName,
+	cookieUser, _ := ctx.Get("user")
+	userEmail := cookieUser.(model.Member).Email
+	member := &model.Member{}
+	result := repository.DB.Select("email,password").Where("email = ?", userEmail).First(&member)
+	if result.Error != nil {
+		uh.Handler.logger.Error("The member for login user do not exist or another retreive error occure")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":     "The team for provided user",
+			"userEmail": userEmail})
+		return
+	}
+	uh.Handler.logger.Info("User have acces to the resource")
+
+	isValid := repository.CheckPasswordHash(changePasswordRequest.OldPassword, member.Password)
+	if !isValid {
+		uh.Handler.logger.Error("The password do not match with the one in database")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "Password Invalid"})
+		return
+	}
+	uh.Handler.logger.Info("Password is correct")
+
+	hash, err := repository.HashPassword(changePasswordRequest.NewPassword)
+	if err != nil {
+		uh.Handler.logger.Error("Error when hashing password",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error when hashing new password"})
+		return
+	}
+	uh.Handler.logger.Info("Password was hashed")
+	row := repository.DB.Model(&model.Member{}).Where("email = ?", userEmail).Update("password", hash)
+	if row.Error != nil {
+		uh.Handler.logger.Error("Error updating password to database",
+			zap.Error(row.Error))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database update error",
 		})
 		return
 	}
+	uh.Handler.logger.Info("Password was sucesfully updated")
 
-	hash, err := repository.HashPassword(newCredentials.NewPassword)
-	if err != nil {
-		uh.Handler.logger.Error("Hash password error")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	uh.Handler.logger.Info("Password was Hashed")
-	team.TeamName = hash
-	repository.DB.Model(&team).Updates(team)
-
-	ctx.JSON(http.StatusAccepted, gin.H{
-		"message":  "Sucesfully updated password",
-		"teamName": team.TeamName,
-	})
+	ctx.AbortWithStatus(201)
 }
 
 func (uh UserAccountHandler) RestartForgotPassword(ctx *gin.Context) {
