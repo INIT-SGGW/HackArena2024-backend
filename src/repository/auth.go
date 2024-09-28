@@ -48,13 +48,13 @@ func CookieAuth(ctx *gin.Context) {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "The token has expired"})
 		}
 
-		var team model.Team
-		DB.First(&team, claims["sub"])
-		if team.ID == 0 {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "There is no such team"})
+		var member model.Member
+		DB.First(&member, claims["sub"])
+		if member.ID == 0 {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "There is no such user"})
 		}
 
-		ctx.Set("team", team)
+		ctx.Set("user", member)
 
 		ctx.Next()
 	} else {
