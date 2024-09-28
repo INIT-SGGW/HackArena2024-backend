@@ -48,13 +48,13 @@ func CookieAuth(ctx *gin.Context) {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "The token has expired"})
 		}
 
-		var team model.Team
-		DB.First(&team, claims["sub"])
-		if team.ID == 0 {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "There is no such team"})
+		var member model.Member
+		DB.First(&member, claims["sub"])
+		if member.ID == 0 {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "There is no such user"})
 		}
 
-		ctx.Set("team", team)
+		ctx.Set("user", member)
 
 		ctx.Next()
 	} else {
@@ -64,7 +64,7 @@ func CookieAuth(ctx *gin.Context) {
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://hackarena.pl")
+		c.Writer.Header().Set("Access-Control-Allow-Origins", "https://hackarena.pl, https://test.hackarena.pl")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,Hack-Arena-API-Key")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")

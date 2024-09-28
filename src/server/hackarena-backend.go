@@ -11,12 +11,13 @@ import (
 func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
-	TeamHandler := handler.NewTeamHandler(*logger)
-	FileHandler := handler.NewFileHandler(*logger)
+	UserAccountHandler := handler.NewUserAccountHandler(logger)
+	RegisterHandler := handler.NewRegisterHandler(logger)
+	TeamHandler := handler.NewTeamHandler(logger)
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
-	authGroup := r.Group("/api/v1")
+	authGroup := r.Group("/api/v2")
 	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
 	repository.InitializeConfig()
@@ -24,18 +25,18 @@ func main() {
 
 	repository.SyncDB() // DBAutoMigration
 
-	authGroup.OPTIONS("/register", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/register/team", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
-	authGroup.OPTIONS("/login", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/register/member", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
 
-	authGroup.OPTIONS("/:teamname/users", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/login", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -46,53 +47,42 @@ func main() {
 		})
 	})
 
-	authGroup.OPTIONS("/:teamname/update", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/password/reset", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
-	authGroup.OPTIONS("/:teamname/changepassword", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/password/change", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	authGroup.OPTIONS("/password/forgot", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
 
-	authGroup.OPTIONS("/:teamname/upload/file", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "return headers",
-		})
-	})
-	authGroup.OPTIONS("/admin/download/:teamname/file", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "return headers",
-		})
-	})
+	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
+
+	authGroup.POST("/register/member", RegisterHandler.RegisterMember)
+
+	authGroup.POST("/login", UserAccountHandler.LoginUser)
 
 	authGroup.POST("/logout", func(ctx *gin.Context) {
 		ctx.SetCookie("HACK-Arena-Authorization", "", -1, "", "", false, true)
 		ctx.JSON(200, gin.H{
-			"message": "user logout",
+			"message": "User logout",
 		})
 	})
-	authGroup.POST("/register", TeamHandler.RegisterTeam)
 
-	authGroup.POST("/login", TeamHandler.LoginUser)
+	authGroup.GET("/team", repository.CookieAuth, TeamHandler.RetreiveTeam)
 
-	authGroup.GET("/:teamname/users", repository.CookieAuth, TeamHandler.ReteiveUsers)
+	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
 
-	authGroup.POST("/:teamname/update", repository.CookieAuth, TeamHandler.UpdeteTeam)
+	authGroup.POST("/password/change", repository.CookieAuth, UserAccountHandler.ChangePassword)
 
-	authGroup.POST("/:teamname/changepassword", repository.CookieAuth, TeamHandler.ChangePassword)
-
-	authGroup.POST("/:teamname/upload/file", repository.CookieAuth, FileHandler.UploadFile)
-
-	authGroup.GET("/admin/download/:teamname/file", FileHandler.DownloadFiles)
-
-	//TODO endpoint to update user data
-	//authGroup.PUT("/:team/:email:",TeamHandler.UpdateUsers)
-
-	//TODO endpoint to add users to the team
-	//authGroup.POST("/:team/adduser",TeamHandler.AddUser)
+	authGroup.POST("/password/reset", UserAccountHandler.ResetPassword)
 
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{
