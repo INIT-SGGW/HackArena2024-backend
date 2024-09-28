@@ -6,8 +6,8 @@ type Handler struct {
 	logger *zap.Logger
 }
 
-func NewHandler(logger zap.Logger) *Handler {
+func NewHandler(logger *zap.Logger) *Handler {
 	return &Handler{
-		logger: &logger,
+		logger: logger,
 	}
 }

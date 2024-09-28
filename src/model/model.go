@@ -9,7 +9,8 @@ type Team struct {
 	gorm.Model
 	TeamName          string `gorm:"uniqueIndex"`
 	VerificationToken string
-	Members           []Member
+	IsVerified        bool
+	Members           []Member `gorm:"foreignKey:team_id"`
 }
 
 type Member struct {
