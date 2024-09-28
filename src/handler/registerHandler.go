@@ -291,7 +291,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 
 		rh.Handler.logger.Info("Send email",
 			zap.Strings("recipient", to))
-		err := smtp.SendMail(rh.emailHost+rh.emailPort, auth, rh.email, to, []byte(message))
+		err := smtp.SendMail(rh.emailHost+":"+rh.emailPort, auth, rh.email, to, []byte(message))
 		if err != nil {
 			rh.Handler.logger.Error("Error sending the email",
 				zap.Error(err))
