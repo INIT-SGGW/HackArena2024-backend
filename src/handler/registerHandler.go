@@ -261,6 +261,9 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 				.bold {
 					font-weight: bold;
 				}
+				.content > * {
+					color: #ffffff;
+				}
 			</style>
 		</head>
 		<body>
