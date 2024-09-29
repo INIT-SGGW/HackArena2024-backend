@@ -76,7 +76,7 @@ func main() {
 		})
 	})
 
-	authGroup.GET("/team", repository.CookieAuth, TeamHandler.RetreiveTeam)
+	authGroup.GET("/team/:teamname", repository.CookieAuth, TeamHandler.RetreiveTeam)
 
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
 

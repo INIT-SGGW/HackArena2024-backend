@@ -45,8 +45,3 @@ type ResetPasswordRequest struct {
 type ForgotPasswordRequest struct {
 	Email string `json:"email" binding:"required"`
 }
-
-// Input struct for get team request
-type GetTeamRequest struct {
-	TeamName string `json:"teamName" binding:"required"`
-}
