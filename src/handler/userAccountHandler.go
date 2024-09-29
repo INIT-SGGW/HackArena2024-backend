@@ -3,6 +3,7 @@ package handler
 import (
 	"INIT-SGGW/hackarena-backend/model"
 	"INIT-SGGW/hackarena-backend/repository"
+	"INIT-SGGW/hackarena-backend/service"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -10,16 +11,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type UserAccountHandler struct {
 	Handler Handler
+	service *service.EmailService
 }
 
 func NewUserAccountHandler(logger *zap.Logger) *UserAccountHandler {
 	return &UserAccountHandler{
 		Handler: *NewHandler(logger),
+		service: service.NewEmailService(logger),
 	}
 }
 
@@ -168,15 +172,123 @@ func (uh UserAccountHandler) ChangePassword(ctx *gin.Context) {
 func (uh UserAccountHandler) RestartForgotPassword(ctx *gin.Context) {
 	defer uh.Handler.logger.Sync()
 
-	ctx.JSON(http.StatusAccepted, gin.H{
-		"message": "Dummy endpoint RestartForgotPassword",
-	})
+	var forgotPasswordRequest model.ForgotPasswordRequest
+
+	if err := ctx.ShouldBindJSON(&forgotPasswordRequest); err != nil {
+		uh.Handler.logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	uh.Handler.logger.Info("The JSON is valid")
+
+	var dbObject model.Member
+	row := repository.DB.Table("members").Where("email = ?", forgotPasswordRequest.Email).
+		Select([]string{"id", "email", "password", "is_verified"}).Find(&dbObject)
+	if row.Error != nil {
+		uh.Handler.logger.Error("Invalid email")
+		ctx.JSON(http.StatusNotAcceptable, gin.H{
+			"error": "There is no such email in database",
+		})
+		return
+	}
+	if !dbObject.IsVerified {
+		uh.Handler.logger.Error("The user is not verified")
+		ctx.JSON(http.StatusNotAcceptable, gin.H{
+			"error": "Unverified user",
+		})
+		return
+	}
+	uh.Handler.logger.Info("The user is verified")
+
+	uh.Handler.logger.Info("Generate one time password")
+	uniqueVerificationToken := uuid.NewString()
+	oneTimePassword, err := repository.HashPassword(uniqueVerificationToken)
+	if err != nil {
+		uh.Handler.logger.Error("Error in password hashing",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Unverified user",
+		})
+		return
+	}
+
+	uh.Handler.logger.Info("Start transaction")
+	tx := repository.DB.Begin()
+	tx.Model(&model.Member{}).Where("email = ? ", dbObject.Email).Update("password", oneTimePassword)
+	err = uh.service.SendResetPasswordEmail(dbObject.Email, uniqueVerificationToken)
+	if err != nil {
+		tx.Rollback()
+		uh.Handler.logger.Error("Error in sending email",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Email send error",
+		})
+		return
+	}
+	tx.Commit()
+	uh.Handler.logger.Info("Send the new password email")
+	uh.Handler.logger.Info("Commit the transaction one time password has been set")
+
+	ctx.AbortWithStatus(201)
 }
 
 func (uh UserAccountHandler) ResetPassword(ctx *gin.Context) {
 	defer uh.Handler.logger.Sync()
 
-	ctx.JSON(http.StatusAccepted, gin.H{
-		"message": "Dummy endpoint ResetPassword",
-	})
+	var resetPasswordRequest model.ResetPasswordRequest
+
+	if err := ctx.ShouldBindJSON(&resetPasswordRequest); err != nil {
+		uh.Handler.logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	uh.Handler.logger.Info("The JSON is valid")
+
+	var dbObject model.Member
+	row := repository.DB.Table("members").Where("email = ?", resetPasswordRequest.Email).
+		Select([]string{"id", "email", "password", "is_verified"}).Find(&dbObject)
+	if row.Error != nil {
+		uh.Handler.logger.Error("Invalid email",
+			zap.Error(row.Error))
+		ctx.JSON(http.StatusNotAcceptable, gin.H{
+			"error": "There is no such email in database",
+		})
+		return
+	}
+
+	uh.Handler.logger.Info("Checking the token")
+
+	isValid := repository.CheckPasswordHash(resetPasswordRequest.Token, dbObject.Password)
+	if !isValid {
+		uh.Handler.logger.Error("Invalid token")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "Invalid token",
+		})
+		return
+	}
+	uh.Handler.logger.Info("The token is valid")
+
+	uh.Handler.logger.Info("Changing the password to the new one")
+
+	hash, err := repository.HashPassword(resetPasswordRequest.Password)
+	if err != nil {
+		uh.Handler.logger.Error("Error while hashing password",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Password hash error",
+		})
+		return
+	}
+	result := repository.DB.Model(&model.Member{}).Where("email = ? ", resetPasswordRequest.Email).Update("password", hash)
+	if result.Error != nil {
+		uh.Handler.logger.Error("Error when inserting to database",
+			zap.Error(result.Error))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Invalid token",
+		})
+		return
+	}
+	uh.Handler.logger.Info("Password was changed")
+
+	ctx.AbortWithStatus(201)
 }

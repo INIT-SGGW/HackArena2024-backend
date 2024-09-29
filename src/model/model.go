@@ -23,7 +23,7 @@ type Member struct {
 	DateOfBirth    *datatypes.Date
 	Occupation     *string
 	DietPrefernces *string
-	Aggrement      bool
+	Agreement      bool
 	School         *string
 	IsVerified     bool
 }
