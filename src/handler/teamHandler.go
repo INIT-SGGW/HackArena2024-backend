@@ -24,15 +24,15 @@ func NewTeamHandler(logger *zap.Logger) *TeamHandler {
 func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	defer th.Handler.logger.Sync()
 
-	var teamRequest model.GetTeamRequest
-
-	if err := ctx.ShouldBindJSON(&teamRequest); err != nil {
-		th.Handler.logger.Error("Input body error")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	teamName := ctx.Param("teamname")
+	if teamName == "" {
+		th.Handler.logger.Error("Missing teamName parameter")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Mising teamName parameter"})
 		return
 	}
-	th.Handler.logger.Info("The JSON is valid",
-		zap.String("teamName", teamRequest.TeamName))
+
+	th.Handler.logger.Info("The input is valid",
+		zap.String("teamName", teamName))
 
 	th.Handler.logger.Info("Checking if user have access to requested team")
 
@@ -42,15 +42,15 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	result := repository.DB.Select("team_name,id").Where("id = ?", hasAccessToTeamWithId).First(&team)
 	if result.Error != nil {
 		th.Handler.logger.Error("The team for provided user do not exist or another retreive error occure")
-		ctx.JSON(http.StatusBadRequest, gin.H{
+		ctx.JSON(http.StatusForbidden, gin.H{
 			"error":  "The team for provided user",
 			"teamId": hasAccessToTeamWithId})
 		return
 	}
 
-	if !strings.EqualFold(team.TeamName, teamRequest.TeamName) {
+	if !strings.EqualFold(team.TeamName, teamName) {
 		th.Handler.logger.Error("User have no acces to this team",
-			zap.String("requestedTeam", teamRequest.TeamName),
+			zap.String("requestedTeam", teamName),
 			zap.String("teamInCookie", team.TeamName))
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"error": "User have no acces to this team"})
