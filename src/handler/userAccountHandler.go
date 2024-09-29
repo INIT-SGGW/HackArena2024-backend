@@ -235,7 +235,60 @@ func (uh UserAccountHandler) RestartForgotPassword(ctx *gin.Context) {
 func (uh UserAccountHandler) ResetPassword(ctx *gin.Context) {
 	defer uh.Handler.logger.Sync()
 
-	ctx.JSON(http.StatusAccepted, gin.H{
-		"message": "Dummy endpoint ResetPassword",
-	})
+	var resetPasswordRequest model.ResetPasswordRequest
+
+	if err := ctx.ShouldBindJSON(&resetPasswordRequest); err != nil {
+		uh.Handler.logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	uh.Handler.logger.Info("The JSON is valid")
+
+	var dbObject model.Member
+	row := repository.DB.Table("members").Where("email = ?", resetPasswordRequest.Email).
+		Select([]string{"id", "email", "password", "is_verified"}).Find(&dbObject)
+	if row.Error != nil {
+		uh.Handler.logger.Error("Invalid email",
+			zap.Error(row.Error))
+		ctx.JSON(http.StatusNotAcceptable, gin.H{
+			"error": "There is no such email in database",
+		})
+		return
+	}
+
+	uh.Handler.logger.Info("Checking the token")
+
+	isValid := repository.CheckPasswordHash(resetPasswordRequest.Token, dbObject.Password)
+	if !isValid {
+		uh.Handler.logger.Error("Invalid token")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "Invalid token",
+		})
+		return
+	}
+	uh.Handler.logger.Info("The token is valid")
+
+	uh.Handler.logger.Info("Changing the password to the new one")
+
+	hash, err := repository.HashPassword(resetPasswordRequest.Password)
+	if err != nil {
+		uh.Handler.logger.Error("Error while hashing password",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Password hash error",
+		})
+		return
+	}
+	result := repository.DB.Model(&model.Member{}).Where("email = ? ", resetPasswordRequest.Email).Update("password", hash)
+	if result.Error != nil {
+		uh.Handler.logger.Error("Error when inserting to database",
+			zap.Error(result.Error))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Invalid token",
+		})
+		return
+	}
+	uh.Handler.logger.Info("Password was changed")
+
+	ctx.AbortWithStatus(201)
 }
