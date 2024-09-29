@@ -18,7 +18,7 @@ type RegisterTeamMemberRequest struct {
 	DateOfBirth       time.Time `json:"dateOfBirth" binding:"required"`
 	Occupation        string    `json:"occupation" binding:"required"`
 	DietPreference    string    `json:"dietPreference" binding:"required"`
-	Aggreement        bool      `json:"aggreement" binding:"required"`
+	Agreement         bool      `json:"agreement" binding:"required"`
 	School            string    `json:"school"` //preset only when occupation is "student"
 }
 

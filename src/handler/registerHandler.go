@@ -177,7 +177,7 @@ func (rh RegisterHandler) RegisterMember(ctx *gin.Context) {
 		DateOfBirth:    (*datatypes.Date)(&input.DateOfBirth),
 		Occupation:     &input.Occupation,
 		DietPrefernces: &input.DietPreference,
-		Aggrement:      input.Aggreement,
+		Agreement:      input.Agreement,
 		School:         &input.School,
 		IsVerified:     true,
 	}
