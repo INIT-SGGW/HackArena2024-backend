@@ -79,8 +79,11 @@ func (rh RegisterHandler) RegisterTeam(ctx *gin.Context) {
 	uniqueVerificationToken := uuid.NewString()
 	team := &model.Team{TeamName: input.TeamName, Members: TeamMembers, VerificationToken: uniqueVerificationToken, IsVerified: false}
 
-	result := repository.DB.Create(&team)
+	rh.Handler.logger.Info("Start registration transaction")
+	tx := repository.DB.Begin()
+	result := tx.Create(&team)
 	if result.Error != nil {
+		tx.Rollback()
 		rh.Handler.logger.Error("Cannot craete new Team")
 		ctx.JSON(http.StatusConflict, gin.H{"error": "Cannot create new team, duplicate"})
 		return
@@ -90,11 +93,13 @@ func (rh RegisterHandler) RegisterTeam(ctx *gin.Context) {
 	// send verification email
 	err := rh.SendVerificationEmail(team)
 	if err != nil {
-		rh.Handler.logger.Error("Error when sending the emails",
+		tx.Rollback()
+		rh.Handler.logger.Error("Error when sending the emails the insert was rollbacked",
 			zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error sending emails"})
 		return
 	}
+	tx.Commit()
 
 	rh.Handler.logger.Info("Sucesfully created team")
 	ctx.AbortWithStatus(201)
