@@ -16,11 +16,12 @@ import (
 )
 
 type RegisterHandler struct {
-	Handler   Handler
-	email     string
-	password  string
-	emailHost string
-	emailPort string
+	Handler    Handler
+	email      string
+	password   string
+	emailHost  string
+	emailPort  string
+	websiteUrl string
 }
 
 func NewRegisterHandler(logger *zap.Logger) *RegisterHandler {
@@ -47,13 +48,19 @@ func NewRegisterHandler(logger *zap.Logger) *RegisterHandler {
 		logger.Error("The HA_EMAIL_PORT environmental variable is missing")
 		os.Exit(2)
 	}
+	websiteURL, exist := os.LookupEnv("HA_WEB_URL")
+	if !exist {
+		logger.Error("The HA_EMAIL_PORT environmental variable is missing")
+		os.Exit(2)
+	}
 
 	return &RegisterHandler{
-		Handler:   *NewHandler(logger),
-		email:     email,
-		password:  password,
-		emailHost: emailHost,
-		emailPort: emailPort,
+		Handler:    *NewHandler(logger),
+		email:      email,
+		password:   password,
+		emailHost:  emailHost,
+		emailPort:  emailPort,
+		websiteUrl: websiteURL,
 	}
 }
 
@@ -207,11 +214,11 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 	for _, member := range team.Members {
 		rh.Handler.logger.Info("Start sending email",
 			zap.String("recipient", member.Email))
-		link := fmt.Sprintf("%s/rejestracja/%s?token=%s&email=%s \r\n", "https://test.hackarena.pl", team.TeamName, team.VerificationToken, member.Email)
+		link := fmt.Sprintf("%s/rejestracja/%s?token=%s&email=%s \r\n", rh.websiteUrl, team.TeamName, team.VerificationToken, member.Email)
 		to := []string{member.Email}
-		message := fmt.Sprintf("From: %s\r\n", rh.email)
+		message := fmt.Sprintf("From: Hackarena <%s>\r\n", rh.email)
 		message += fmt.Sprintf("To: %s\r\n", member.Email)
-		message += "Subject: HackArena2.0 registration\r\n"
+		message += "Subject: Rejestracja\r\n"
 		message += "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 		body := `<!DOCTYPE html>
 		<html>
