@@ -96,7 +96,7 @@ func (rh RegisterHandler) RegisterTeam(ctx *gin.Context) {
 		tx.Rollback()
 		rh.Handler.logger.Error("Error when sending the emails the insert was rollbacked",
 			zap.Error(err))
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error sending emails"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error sending emails"})
 		return
 	}
 	tx.Commit()
@@ -313,7 +313,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 }
 
 func isOccupationValid(occupation string) bool {
-	return (occupation == "student" || occupation == "undergraduate" || occupation == "postgraduete" || occupation == "other")
+	return (occupation == "student" || occupation == "undergraduate" || occupation == "postgraduate" || occupation == "other")
 }
 
 func isDietPreferenceValid(dietPreference string) bool {
