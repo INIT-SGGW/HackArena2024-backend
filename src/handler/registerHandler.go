@@ -313,7 +313,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 }
 
 func isOccupationValid(occupation string) bool {
-	return (occupation == "student" || occupation == "undergraduate" || occupation == "postgraduete" || occupation == "other")
+	return (occupation == "student" || occupation == "undergraduate" || occupation == "postgraduate" || occupation == "other")
 }
 
 func isDietPreferenceValid(dietPreference string) bool {
