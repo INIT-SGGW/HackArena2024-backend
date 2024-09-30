@@ -146,7 +146,7 @@ func (es EmailService) SendResetPasswordEmail(email, oneTimePassword string) err
 	es.logger.Info("Authenticated")
 
 	es.logger.Info("Start creating the email")
-	link := fmt.Sprintf("%s/reset?email=%s&token=%s", es.websiteURL, email, oneTimePassword)
+	link := fmt.Sprintf("%s/password/reset?email=%s&token=%s", es.websiteURL, email, oneTimePassword)
 	body := es.passwordResetEmailBodyStart + link + es.passwordResetEmailBodyEnd
 	to := []string{email}
 	message := fmt.Sprintf("From: %s\r\n", es.email)
