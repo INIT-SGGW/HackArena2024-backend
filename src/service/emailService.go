@@ -42,6 +42,11 @@ func NewEmailService(logger *zap.Logger) *EmailService {
 		logger.Error("The HA_EMAIL_PORT environmental variable is missing")
 		os.Exit(2)
 	}
+	websiteURL, exist := os.LookupEnv("HA_WEB_URL")
+	if !exist {
+		logger.Error("The HA_EMAIL_PORT environmental variable is missing")
+		os.Exit(2)
+	}
 	templateBodyStart := ` 
 	<!DOCTYPE html>
 		<html>
@@ -109,7 +114,7 @@ func NewEmailService(logger *zap.Logger) *EmailService {
 				</div>
 				<div class="content">
 					<p>Drogi Uczestniku,</p>
-					<p>Kliknij w link aby ustawic nowe haslo dla twojego konta </p>
+					<p>Kliknij w link aby ustawić nowe hasło dla twojego konta </p>
 	`
 
 	templateBodyEnd := `
@@ -131,7 +136,7 @@ func NewEmailService(logger *zap.Logger) *EmailService {
 		password:                    password,
 		emailHost:                   emailHost,
 		emailPort:                   emailPort,
-		websiteURL:                  "https://test.hackarena.pl",
+		websiteURL:                  websiteURL,
 		passwordResetEmailBodyStart: templateBodyStart,
 		passwordResetEmailBodyEnd:   templateBodyEnd,
 	}
@@ -149,9 +154,9 @@ func (es EmailService) SendResetPasswordEmail(email, oneTimePassword string) err
 	link := fmt.Sprintf("%s/password/reset?email=%s&token=%s", es.websiteURL, email, oneTimePassword)
 	body := es.passwordResetEmailBodyStart + link + es.passwordResetEmailBodyEnd
 	to := []string{email}
-	message := fmt.Sprintf("From: %s\r\n", es.email)
+	message := fmt.Sprintf("From: Hackarena <%s>\r\n", es.email)
 	message += fmt.Sprintf("To: %s\r\n", email)
-	message += "Subject: HackArena2.0 Password restart\r\n"
+	message += "Subject: Zmiana hasła\r\n"
 	message += "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	message += fmt.Sprintf("\r\n%s\r\n", body)
 
