@@ -62,6 +62,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/team/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
