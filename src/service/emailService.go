@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/smtp"
+	"net/url"
 	"os"
 
 	"go.uber.org/zap"
@@ -149,9 +150,22 @@ func (es EmailService) SendResetPasswordEmail(email, oneTimePassword string) err
 
 	auth := smtp.PlainAuth("", es.email, es.password, es.emailHost)
 	es.logger.Info("Authenticated")
+	baseUrl, err := url.Parse(es.websiteURL)
+	if err != nil {
+		es.logger.Error("Invalid parsing of base URL",
+			zap.String("baseURL", es.websiteURL))
+		return err
+	}
+	baseUrl.Path += "/password/reset"
+	params := url.Values{}
+	params.Add("email", email)
+	params.Add("token", oneTimePassword)
+	baseUrl.RawQuery += params.Encode()
+
+	link := baseUrl.String()
 
 	es.logger.Info("Start creating the email")
-	link := fmt.Sprintf("%s/password/reset?email=%s&token=%s", es.websiteURL, email, oneTimePassword)
+
 	body := es.passwordResetEmailBodyStart + link + es.passwordResetEmailBodyEnd
 	to := []string{email}
 	message := fmt.Sprintf("From: Hackarena <%s>\r\n", es.email)
@@ -163,7 +177,7 @@ func (es EmailService) SendResetPasswordEmail(email, oneTimePassword string) err
 	es.logger.Info("Email created")
 	es.logger.Info("Sending email",
 		zap.String("recipient", email))
-	err := smtp.SendMail(es.emailHost+":"+es.emailPort, auth, es.email, to, []byte(message))
+	err = smtp.SendMail(es.emailHost+":"+es.emailPort, auth, es.email, to, []byte(message))
 	if err != nil {
 		es.logger.Error("Error sending the email",
 			zap.Error(err))
