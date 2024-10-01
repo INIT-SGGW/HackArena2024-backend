@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/smtp"
+	"net/url"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -214,7 +215,19 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 	for _, member := range team.Members {
 		rh.Handler.logger.Info("Start sending email",
 			zap.String("recipient", member.Email))
-		link := fmt.Sprintf("%s/rejestracja/%s?token=%s&email=%s \r\n", rh.websiteUrl, team.TeamName, team.VerificationToken, member.Email)
+		baseUrl, err := url.Parse(rh.websiteUrl)
+		if err != nil {
+			rh.Handler.logger.Error("Invalid parsing of base URL",
+				zap.String("baseURL", rh.websiteUrl))
+			return err
+		}
+		baseUrl.Path += fmt.Sprintf("/rejestracja/%s", team.TeamName)
+		params := url.Values{}
+		params.Add("token", team.VerificationToken)
+		params.Add("email", member.Email)
+		baseUrl.RawQuery += params.Encode()
+
+		link := baseUrl.String()
 		to := []string{member.Email}
 		message := fmt.Sprintf("From: Hackarena <%s>\r\n", rh.email)
 		message += fmt.Sprintf("To: %s\r\n", member.Email)
@@ -288,7 +301,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 					<p>Drogi Uczestniku,</p>
 					<p>Dziękujemy za zarejestrowanie się na hackathon Hackarena 2.0! Cieszymy się, że chcesz dołączyć do nas w tym ekscytującym wydarzeniu.</p>
 					<p>Do zakonczenia procesu rejestracji kliknij w link i wypelnij wszystkie niezbedne dane:</p>` +
-			link +
+			fmt.Sprintf("<a href=%s>%s</a>", link, link) +
 			`<p class="bold">Informację o tym, czy twoja drużyna zakwalifikowała się na wydarzenie prześlemy do 20.10, dlatego sprawdzaj swoją skrzynkę mailową!
 					</p>
 					<p>Czekając zaobserwuj nasze social media, aby być na bieżąco! <br><br>
@@ -306,7 +319,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 
 		rh.Handler.logger.Info("Send email",
 			zap.Strings("recipient", to))
-		err := smtp.SendMail(rh.emailHost+":"+rh.emailPort, auth, rh.email, to, []byte(message))
+		err = smtp.SendMail(rh.emailHost+":"+rh.emailPort, auth, rh.email, to, []byte(message))
 		if err != nil {
 			rh.Handler.logger.Error("Error sending the email",
 				zap.Error(err))
