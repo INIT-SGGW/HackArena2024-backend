@@ -300,7 +300,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 				<div class="content">
 					<p>Drogi Uczestniku,</p>
 					<p>Dziękujemy za zarejestrowanie się na hackathon Hackarena 2.0! Cieszymy się, że chcesz dołączyć do nas w tym ekscytującym wydarzeniu.</p>
-					<p>Do zakonczenia procesu rejestracji kliknij w link i wypelnij wszystkie niezbedne dane:</p>` +
+					<p>Do zakończenia procesu rejestracji, kliknij w link i wypełnij wszystkie niezbędne dane:</p>` +
 			fmt.Sprintf("<a href=%s>%s</a>", link, link) +
 			`<p class="bold">Informację o tym, czy twoja drużyna zakwalifikowała się na wydarzenie prześlemy do 20.10, dlatego sprawdzaj swoją skrzynkę mailową!
 					</p>
@@ -310,7 +310,7 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 				</div>
 				<div class="footer">
 					<p>&copy; 2024 Hackarena. Wszelkie prawa zastrzeżone.</p>
-					<p>W razie pytań, prosimy o kontakt: <a href="mailto:kontakt@hackarena.pl">kontkat@hackarena.pl</a>.</p>
+					<p>W razie pytań, prosimy o kontakt: <a href="mailto:kontakt@hackarena.pl">kontakt@hackarena.pl</a>.</p>
 				</div>
 			</div>
 		</body>

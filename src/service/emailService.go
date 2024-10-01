@@ -125,7 +125,7 @@ func NewEmailService(logger *zap.Logger) *EmailService {
 				</div>
 				<div class="footer">
 					<p>&copy; 2024 Hackarena. Wszelkie prawa zastrzeżone.</p>
-					<p>W razie pytań, prosimy o kontakt: <a href="mailto:kontakt@hackarena.pl">kontkat@hackarena.pl</a>.</p>
+					<p>W razie pytań, prosimy o kontakt: <a href="mailto:kontakt@hackarena.pl">kontakt@hackarena.pl</a>.</p>
 				</div>
 			</div>
 		</body>
