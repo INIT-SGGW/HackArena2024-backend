@@ -9,6 +9,7 @@ type LoginResponse struct {
 // Struct represnting response for Get /team endpoint
 type GetTeamResponse struct {
 	TeamName    string                  `json:"teamName"`
+	IsVerified  bool                    `json:"verified"`
 	TeamMembers []GetTeamMemberResponse `json:"teamMembers"`
 }
 

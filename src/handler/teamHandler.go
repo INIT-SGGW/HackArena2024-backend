@@ -39,7 +39,7 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	cookieUser, _ := ctx.Get("user")
 	hasAccessToTeamWithId := cookieUser.(model.Member).TeamID
 	team := &model.Team{}
-	result := repository.DB.Select("team_name,id").Where("id = ?", hasAccessToTeamWithId).First(&team)
+	result := repository.DB.Select("team_name,id,is_verified").Where("id = ?", hasAccessToTeamWithId).First(&team)
 	if result.Error != nil {
 		th.Handler.logger.Error("The team for provided user do not exist or another retreive error occure")
 		ctx.JSON(http.StatusForbidden, gin.H{
@@ -87,6 +87,7 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 
 	jsonBody, err := json.Marshal(model.GetTeamResponse{
 		TeamName:    team.TeamName,
+		IsVerified:  team.IsVerified,
 		TeamMembers: membersToResponse,
 	})
 	if err != nil {
