@@ -14,12 +14,15 @@ func main() {
 	UserAccountHandler := handler.NewUserAccountHandler(logger)
 	RegisterHandler := handler.NewRegisterHandler(logger)
 	TeamHandler := handler.NewTeamHandler(logger)
+	AdminHandler := handler.NewAdminHandler(logger)
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
 	authGroup := r.Group("/api/v2")
 	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
+	adminAuthGroup := r.Group("/api/v2/admin")
+	adminAuthGroup.Use(repository.CORSMiddleware(), repository.AuthMiddleweare(), repository.AdminAuthMiddleweare())
 	repository.InitializeConfig()
 	repository.ConnectDataBase()
 
@@ -68,6 +71,23 @@ func main() {
 		})
 	})
 
+	// Admin Endpoints Options
+	adminAuthGroup.OPTIONS("/teams", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/login", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/logout", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
 	authGroup.POST("/register/member", RegisterHandler.RegisterMember)
@@ -89,6 +109,21 @@ func main() {
 
 	authGroup.POST("/password/reset", UserAccountHandler.ResetPassword)
 
+	// Admin endpoints
+	adminAuthGroup.POST("/login", AdminHandler.LoginAdmin)
+
+	adminAuthGroup.POST("/logout", func(ctx *gin.Context) {
+		ctx.SetCookie("HACK-Arena-Admin-Authorization", "", -1, "", "", false, true)
+		ctx.JSON(200, gin.H{
+			"message": "User logout",
+		})
+	})
+
+	adminAuthGroup.POST("/register", AdminHandler.RegisterAdmin)
+
+	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, func(ctx *gin.Context) { ctx.AbortWithStatus(200) })
+
+	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "I'am alive",

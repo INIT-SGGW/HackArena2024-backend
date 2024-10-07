@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// User and Team processing DB Obects
 type Team struct {
 	gorm.Model
 	TeamName          string `gorm:"uniqueIndex"`
@@ -26,4 +27,14 @@ type Member struct {
 	Agreement      bool
 	School         *string
 	IsVerified     bool
+}
+
+// Admin account DB Object
+type HackArenaAdmin struct {
+	gorm.Model
+	Name      string
+	Email     string
+	User      string `gorm:"index:idx_admin_name,unique"`
+	Password  string
+	Privilage string `gorm:"default:SuperUser"`
 }
