@@ -100,3 +100,39 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 
 	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
 }
+
+func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
+	teams := []model.Team{}
+	err := repository.DB.Model(&model.Team{}).Preload("Members").Find(&teams).Error
+	if err != nil {
+		th.Handler.logger.Error("Error when retreiving teams from databas",
+			zap.Error(err))
+		ctx.AbortWithStatus(500)
+		return
+	}
+	th.Handler.logger.Info("Sucesfully retreive teams")
+
+	responseTeams := []model.TeamResponse{}
+
+	for _, team := range teams {
+		newTeam := model.TeamResponse{
+			TeamName:         team.TeamName,
+			IsVerified:       team.IsVerified,
+			IsApproved:       team.IsApproved,
+			TeamMembersCount: len(team.Members),
+		}
+		responseTeams = append(responseTeams, newTeam)
+	}
+	response := model.GetAllTeamsResponse{Teams: responseTeams}
+
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		th.Handler.logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+}

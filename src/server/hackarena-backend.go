@@ -121,7 +121,7 @@ func main() {
 
 	adminAuthGroup.POST("/register", AdminHandler.RegisterAdmin)
 
-	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, func(ctx *gin.Context) { ctx.AbortWithStatus(200) })
+	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsAsAdmin)
 
 	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {

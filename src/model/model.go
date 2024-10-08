@@ -11,6 +11,7 @@ type Team struct {
 	TeamName          string `gorm:"uniqueIndex"`
 	VerificationToken string
 	IsVerified        bool
+	IsApproved        bool     `gorm:"default:false"`
 	Members           []Member `gorm:"foreignKey:team_id"`
 }
 

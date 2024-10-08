@@ -20,3 +20,14 @@ type GetTeamMemberResponse struct {
 	LastName  *string `json:"lastName"`
 	Verified  bool    `json:"verified"`
 }
+
+type GetAllTeamsResponse struct {
+	Teams []TeamResponse `json:"teams"`
+}
+
+type TeamResponse struct {
+	TeamName         string `json:"teamName"`
+	IsVerified       bool   `json:"verified"`
+	IsApproved       bool   `json:"approved"`
+	TeamMembersCount int    `json:"numberOfUsers"`
+}
