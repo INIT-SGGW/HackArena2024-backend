@@ -117,7 +117,7 @@ func main() {
 
 	authGroup.GET("/team/:teamname", repository.CookieAuth, TeamHandler.RetreiveTeam)
 
-	authGroup.POST("/team/approve/:teamname", TeamHandler.ConfirmTeam)
+	authGroup.POST("/team/confirmation/:teamname", TeamHandler.ConfirmTeam)
 
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
 
