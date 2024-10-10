@@ -28,6 +28,6 @@ type GetAllTeamsResponse struct {
 type TeamResponse struct {
 	TeamName         string `json:"teamName"`
 	IsVerified       bool   `json:"verified"`
-	IsApproved       bool   `json:"approved"`
+	ApproveSatatus   string `json:"approved"`
 	TeamMembersCount int    `json:"numberOfUsers"`
 }

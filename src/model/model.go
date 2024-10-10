@@ -12,6 +12,7 @@ type Team struct {
 	VerificationToken string
 	IsVerified        bool
 	IsApproved        bool     `gorm:"default:false"`
+	ApproveStatus     string   `gorm:"default:pending"`
 	Members           []Member `gorm:"foreignKey:team_id"`
 }
 

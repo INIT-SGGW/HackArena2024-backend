@@ -118,7 +118,7 @@ func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
 		newTeam := model.TeamResponse{
 			TeamName:         team.TeamName,
 			IsVerified:       team.IsVerified,
-			IsApproved:       team.IsApproved,
+			ApproveSatatus:   team.ApproveStatus,
 			TeamMembersCount: len(team.Members),
 		}
 		responseTeams = append(responseTeams, newTeam)
