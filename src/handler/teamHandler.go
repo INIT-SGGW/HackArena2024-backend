@@ -129,7 +129,7 @@ func (th TeamHandler) ConfirmTeam(ctx *gin.Context) {
 	th.Handler.logger.Info("User have acces to the team")
 	th.Handler.logger.Info("Update confirmation value")
 
-	err := repository.DB.Model(&model.Team{}).Where("id = ?", team.ID).Update("is_confirmed", true)
+	err := repository.DB.Model(&model.Team{}).Where("id = ?", team.ID).Update("is_confirmed", true).Error
 	if err != nil {
 		th.Handler.logger.Error("Error inserting to database")
 		ctx.JSON(http.StatusInternalServerError, gin.H{

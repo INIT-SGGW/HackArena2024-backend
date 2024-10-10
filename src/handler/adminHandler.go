@@ -161,3 +161,39 @@ func (ah AdminHandler) AdminApproveTeam(ctx *gin.Context) {
 	ctx.AbortWithStatus(200)
 
 }
+
+func (ah AdminHandler) ConfirmTeam(ctx *gin.Context) {
+	defer ah.Handler.logger.Sync()
+
+	teamName := ctx.Param("teamname")
+	if teamName == "" {
+		ah.Handler.logger.Error("Missing teamName parameter")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Mising teamName parameter"})
+		return
+	}
+
+	ah.Handler.logger.Info("The input is valid",
+		zap.String("teamName", teamName))
+
+	team := &model.Team{}
+	result := repository.DB.Select("team_name,id,is_verified").Where("team_name = ?", teamName).First(&team)
+	if result.Error != nil {
+		ah.Handler.logger.Error("There is no such team in database")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "There is no such team in database"})
+		return
+	}
+	ah.Handler.logger.Info("Sucesfully retreive team data from database")
+
+	err := repository.DB.Model(&model.Team{}).Where("id = ?", team.ID).Update("is_confirmed", true).Error
+	if err != nil {
+		ah.Handler.logger.Error("Error inserting to database")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database insert failed",
+		})
+		return
+	}
+
+	ctx.AbortWithStatus(200)
+
+}
