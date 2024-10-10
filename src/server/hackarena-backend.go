@@ -70,7 +70,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
-
+	authGroup.OPTIONS("/team/confirmation/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 	// Admin Endpoints Options
 	adminAuthGroup.OPTIONS("/teams", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
@@ -83,6 +87,11 @@ func main() {
 		})
 	})
 	adminAuthGroup.OPTIONS("/logout", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/register", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -122,6 +131,8 @@ func main() {
 	adminAuthGroup.POST("/register", repository.AdminCookieAuth, AdminHandler.RegisterAdmin)
 
 	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsAsAdmin)
+
+	adminAuthGroup.POST("/team/approve/:teamname", repository.AdminCookieAuth, AdminHandler.AdminApproveTeam)
 
 	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {

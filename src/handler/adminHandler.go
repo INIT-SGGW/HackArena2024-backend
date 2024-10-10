@@ -82,8 +82,7 @@ func (ah AdminHandler) LoginAdmin(ctx *gin.Context) {
 		})
 		return
 	}
-	ah.Handler.logger.Info("Find User",
-		zap.String("Hash", dbObject.Password))
+	ah.Handler.logger.Info("Find User")
 
 	//Validate provided password
 	isValid := repository.CheckPasswordHash(loginRequest.Password, dbObject.Password)
@@ -119,5 +118,46 @@ func (ah AdminHandler) LoginAdmin(ctx *gin.Context) {
 
 	ah.Handler.logger.Info("Sucesfully log in")
 	ctx.String(http.StatusAccepted, "Sucesfully log in user")
+
+}
+func (ah AdminHandler) AdminApproveTeam(ctx *gin.Context) {
+	defer ah.Handler.logger.Sync()
+
+	teamName := ctx.Param("teamname")
+	var teamApproveRequest model.UpdateTeamRequest
+
+	if teamName == "" {
+		ah.Handler.logger.Error("There is no team name in the request")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Empty team name param"})
+		return
+	}
+
+	if err := ctx.ShouldBindJSON(&teamApproveRequest); err != nil {
+		ah.Handler.logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ah.Handler.logger.Info("The input is valid query DB for team",
+		zap.String("teamName", teamName))
+
+	team := model.Team{}
+	err := repository.DB.Model(&model.Team{}).Select("id,team_name,approve_status").Where("team_name = ?", teamName).First(&team).Error
+	if err != nil {
+		ah.Handler.logger.Error("There is no such team name in database")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "No team in database"})
+		return
+	}
+
+	err = repository.DB.Model(&model.Team{}).Where("id = ? ", team.ID).Update("approve_status", teamApproveRequest.Status).Error
+	if err != nil {
+		ah.Handler.logger.Error("Error inserting status to database")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Issue in inserting record in database"})
+		return
+	}
+
+	ah.Handler.logger.Info("Team approve status sucesfully updated")
+
+	ctx.AbortWithStatus(200)
 
 }

@@ -21,10 +21,12 @@ type GetTeamMemberResponse struct {
 	Verified  bool    `json:"verified"`
 }
 
+// response wrapper for Get all teams admin endpoint
 type GetAllTeamsResponse struct {
 	Teams []TeamResponse `json:"teams"`
 }
 
+// Struct reporesenting team in response fro Get all teams admin endpoints
 type TeamResponse struct {
 	TeamName         string `json:"teamName"`
 	IsVerified       bool   `json:"verified"`
