@@ -119,7 +119,7 @@ func main() {
 		})
 	})
 
-	adminAuthGroup.POST("/register", AdminHandler.RegisterAdmin)
+	adminAuthGroup.POST("/register", repository.AdminCookieAuth, AdminHandler.RegisterAdmin)
 
 	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsAsAdmin)
 
