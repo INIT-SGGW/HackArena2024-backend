@@ -22,7 +22,7 @@ func main() {
 	authGroup.Use(repository.CORSMiddleware())
 	authGroup.Use(repository.AuthMiddleweare())
 	adminAuthGroup := r.Group("/api/v2/admin")
-	adminAuthGroup.Use(repository.CORSMiddleware(), repository.AuthMiddleweare(), repository.AdminAuthMiddleweare())
+	adminAuthGroup.Use(repository.AdminCORSMiddleware(), repository.AuthMiddleweare(), repository.AdminAuthMiddleweare())
 	repository.InitializeConfig()
 	repository.ConnectDataBase()
 

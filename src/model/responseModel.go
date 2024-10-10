@@ -21,15 +21,29 @@ type GetTeamMemberResponse struct {
 	Verified  bool    `json:"verified"`
 }
 
-// response wrapper for Get all teams admin endpoint
+// response wrapper for GET all teams admin endpoint
 type GetAllTeamsResponse struct {
 	Teams []TeamResponse `json:"teams"`
 }
 
-// Struct reporesenting team in response fro Get all teams admin endpoints
+// Struct reporesenting team in response for GET all teams admin endpoints
 type TeamResponse struct {
 	TeamName         string `json:"teamName"`
 	IsVerified       bool   `json:"verified"`
 	ApproveSatatus   string `json:"approved"`
 	TeamMembersCount int    `json:"numberOfUsers"`
+}
+
+// response wrapper for Get all users admin endpoint
+type GetAllUsersResponse struct {
+	Users []UserResponse `json:"users"`
+}
+
+// struct representing team member in response for GET all users admin endpoints
+type UserResponse struct {
+	TeamName   string `json:"teamName"`
+	Email      string `json:"email"`
+	FirstName  string `json:"firstName"`
+	LastName   string `json:"lastName"`
+	IsVerified bool   `json:"verified"`
 }
