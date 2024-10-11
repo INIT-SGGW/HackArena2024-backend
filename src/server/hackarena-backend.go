@@ -149,7 +149,7 @@ func main() {
 
 	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsAsAdmin)
 
-	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllUsersAsAdmin)
+	adminAuthGroup.GET("/users", repository.AdminCookieAuth, TeamHandler.GetAllUsersAsAdmin)
 
 	adminAuthGroup.POST("/team/approve/:teamname", repository.AdminCookieAuth, AdminHandler.AdminApproveTeam)
 
