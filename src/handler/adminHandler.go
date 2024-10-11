@@ -72,7 +72,7 @@ func (ah AdminHandler) LoginAdmin(ctx *gin.Context) {
 	}
 	//retreive password from database
 	var dbObject model.HackArenaAdmin
-	row := repository.DB.Table("hack_arena_admins").Where("hack_arena_admins.user = ?", loginRequest.User).
+	row := repository.DB.Table("hack_arena_admins").Where("hack_arena_admins.email = ?", loginRequest.Email).
 		Select([]string{"id", "privilage", "password"}).Find(&dbObject)
 
 	if row.Error != nil {

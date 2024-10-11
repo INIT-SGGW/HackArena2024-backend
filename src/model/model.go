@@ -35,7 +35,7 @@ type Member struct {
 type HackArenaAdmin struct {
 	gorm.Model
 	Name      string
-	Email     string
+	Email     string `gorm:"index:idx_admin_email,unique"`
 	User      string `gorm:"index:idx_admin_name,unique"`
 	Password  string
 	Privilage string `gorm:"default:SuperUser"`

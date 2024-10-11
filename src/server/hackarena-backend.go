@@ -106,6 +106,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/users", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
@@ -143,6 +148,8 @@ func main() {
 	adminAuthGroup.POST("/register", repository.AdminCookieAuth, AdminHandler.RegisterAdmin)
 
 	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsAsAdmin)
+
+	adminAuthGroup.GET("/teams", repository.AdminCookieAuth, TeamHandler.GetAllUsersAsAdmin)
 
 	adminAuthGroup.POST("/team/approve/:teamname", repository.AdminCookieAuth, AdminHandler.AdminApproveTeam)
 
