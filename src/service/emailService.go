@@ -45,7 +45,7 @@ func NewEmailService(logger *zap.Logger) *EmailService {
 	}
 	websiteURL, exist := os.LookupEnv("HA_WEB_URL")
 	if !exist {
-		logger.Error("The HA_EMAIL_PORT environmental variable is missing")
+		logger.Error("The HA_WEB_URL environmental variable is missing")
 		os.Exit(2)
 	}
 	templateBodyStart := ` 

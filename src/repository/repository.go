@@ -66,5 +66,5 @@ func ConnectDataBase() {
 	}
 }
 func SyncDB() {
-	DB.AutoMigrate(&model.Team{}, &model.Member{})
+	DB.AutoMigrate(&model.Team{}, &model.Member{}, &model.HackArenaAdmin{})
 }

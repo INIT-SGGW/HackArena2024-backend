@@ -45,3 +45,20 @@ type ResetPasswordRequest struct {
 type ForgotPasswordRequest struct {
 	Email string `json:"email" binding:"required"`
 }
+
+// Admin register body
+type RegisterAdminRequest struct {
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	UserName string `json:"userName" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginAdminRequest struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type UpdateTeamRequest struct {
+	Status string `json:"status" binding:"required"`
+}

@@ -23,6 +23,18 @@ func AuthMiddleweare() gin.HandlerFunc {
 		c.Next()
 	}
 }
+func AdminAuthMiddleweare() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		apiKey := c.GetHeader("Hack-Arena-Admin-API-Key")
+		keyValue := os.Getenv("HA_ADMIN_API_KEY")
+		if apiKey != keyValue {
+			c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+		c.Next()
+	}
+}
 
 func CookieAuth(ctx *gin.Context) {
 	tokenString, err := ctx.Cookie("HACK-Arena-Authorization")
@@ -62,11 +74,64 @@ func CookieAuth(ctx *gin.Context) {
 	}
 }
 
+func AdminCookieAuth(ctx *gin.Context) {
+	tokenString, err := ctx.Cookie("HACK-Arena-Admin-Authorization")
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(os.Getenv("SECRET_JWT")), nil
+	})
+	if token == nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if float64(time.Now().Unix()) > claims["exp"].(float64) {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "The token has expired"})
+		}
+
+		var admin model.HackArenaAdmin
+		DB.First(&admin, claims["sub"])
+		if admin.ID == 0 {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "There is no such user"})
+		}
+
+		ctx.Set("user", admin)
+
+		ctx.Next()
+	} else {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+	}
+}
+
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://hackarena.pl")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,Hack-Arena-API-Key")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+func AdminCORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://admin.hackarena.pl")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,Hack-Arena-API-Key,Hack-Arena-Admin-API-Key")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 		if c.Request.Method == "OPTIONS" {

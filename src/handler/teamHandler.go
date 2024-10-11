@@ -39,7 +39,7 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	cookieUser, _ := ctx.Get("user")
 	hasAccessToTeamWithId := cookieUser.(model.Member).TeamID
 	team := &model.Team{}
-	result := repository.DB.Select("team_name,id").Where("id = ?", hasAccessToTeamWithId).First(&team)
+	result := repository.DB.Select("team_name,id,is_verified").Where("id = ?", hasAccessToTeamWithId).First(&team)
 	if result.Error != nil {
 		th.Handler.logger.Error("The team for provided user do not exist or another retreive error occure")
 		ctx.JSON(http.StatusForbidden, gin.H{
@@ -87,6 +87,7 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 
 	jsonBody, err := json.Marshal(model.GetTeamResponse{
 		TeamName:    team.TeamName,
+		IsVerified:  team.IsVerified,
 		TeamMembers: membersToResponse,
 	})
 	if err != nil {
@@ -98,4 +99,139 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	}
 
 	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+}
+
+func (th TeamHandler) ConfirmTeam(ctx *gin.Context) {
+	defer th.Handler.logger.Sync()
+
+	teamName := ctx.Param("teamname")
+	if teamName == "" {
+		th.Handler.logger.Error("Missing teamName parameter")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Mising teamName parameter"})
+		return
+	}
+
+	th.Handler.logger.Info("The input is valid",
+		zap.String("teamName", teamName))
+
+	th.Handler.logger.Info("Checking if user have access to requested team")
+
+	cookieUser, _ := ctx.Get("user")
+	hasAccessToTeamWithId := cookieUser.(model.Member).TeamID
+	team := &model.Team{}
+	result := repository.DB.Select("team_name,id,is_verified").Where("id = ?", hasAccessToTeamWithId).First(&team)
+	if result.Error != nil {
+		th.Handler.logger.Error("The team for provided user do not exist or another retreive error occure")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "The team for provided user do not exist or user have no acces to that team"})
+		return
+	}
+	th.Handler.logger.Info("User have acces to the team")
+	th.Handler.logger.Info("Update confirmation value")
+
+	err := repository.DB.Model(&model.Team{}).Where("id = ?", team.ID).Update("is_confirmed", true).Error
+	if err != nil {
+		th.Handler.logger.Error("Error inserting to database")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database insert failed",
+		})
+		return
+	}
+
+	ctx.AbortWithStatus(200)
+}
+
+func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
+	defer th.Handler.logger.Sync()
+
+	teams := []model.Team{}
+	err := repository.DB.Model(&model.Team{}).Preload("Members").Find(&teams).Error
+	if err != nil {
+		th.Handler.logger.Error("Error when retreiving teams from database",
+			zap.Error(err))
+		ctx.AbortWithStatus(500)
+		return
+	}
+	th.Handler.logger.Info("Sucesfully retreive teams")
+
+	responseTeams := []model.TeamResponse{}
+
+	for _, team := range teams {
+		newTeam := model.TeamResponse{
+			TeamName:         team.TeamName,
+			IsVerified:       team.IsVerified,
+			ApproveSatatus:   team.ApproveStatus,
+			TeamMembersCount: len(team.Members),
+		}
+		responseTeams = append(responseTeams, newTeam)
+	}
+	response := model.GetAllTeamsResponse{Teams: responseTeams}
+
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		th.Handler.logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+}
+
+func (th TeamHandler) GetAllUsersAsAdmin(ctx *gin.Context) {
+	defer th.Handler.logger.Sync()
+
+	teams := []model.Team{}
+	err := repository.DB.Model(&model.Team{}).Preload("Members").Find(&teams).Error
+	if err != nil {
+		th.Handler.logger.Error("Error when retreiving teams from database",
+			zap.Error(err))
+		ctx.AbortWithStatus(500)
+		return
+	}
+	th.Handler.logger.Info("Sucesfully retreive teams")
+
+	memberResponses := []model.UserResponse{}
+
+	for _, team := range teams {
+		for _, member := range team.Members {
+			var firstName string
+			var lastName string
+			if member.FirstName == nil {
+				firstName = "not verified"
+			} else {
+				firstName = *member.FirstName
+			}
+			if member.LastName == nil {
+				lastName = "not verified"
+			} else {
+				lastName = *member.LastName
+			}
+
+			newMemberResponseEntry := model.UserResponse{
+				TeamName:   team.TeamName,
+				Email:      member.Email,
+				FirstName:  firstName,
+				LastName:   lastName,
+				IsVerified: member.IsVerified,
+			}
+			memberResponses = append(memberResponses, newMemberResponseEntry)
+		}
+	}
+	response := model.GetAllUsersResponse{
+		Users: memberResponses,
+	}
+
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		th.Handler.logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+
 }
