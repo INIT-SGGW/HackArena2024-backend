@@ -125,9 +125,9 @@ func main() {
 		})
 	})
 
-	authGroup.GET("/team/:teamname", repository.CookieAuth, TeamHandler.RetreiveTeam)
+	authGroup.GET("/team/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.RetreiveTeam)
 
-	authGroup.POST("/team/confirmation/:teamname", TeamHandler.ConfirmTeam)
+	authGroup.POST("/team/confirmation/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.ConfirmTeam)
 
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
 

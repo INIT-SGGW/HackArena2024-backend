@@ -5,7 +5,6 @@ import (
 	"INIT-SGGW/hackarena-backend/repository"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -22,56 +21,26 @@ func NewTeamHandler(logger *zap.Logger) *TeamHandler {
 }
 
 func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
-	defer th.Handler.logger.Sync()
+	defer th.Handler.Logger.Sync()
 
-	teamName := ctx.Param("teamname")
-	if teamName == "" {
-		th.Handler.logger.Error("Missing teamName parameter")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Mising teamName parameter"})
-		return
-	}
+	teamName := ctx.MustGet("team_name").(string)
+	teamIsVerified := ctx.MustGet("team_is_veifird").(bool)
+	hasAccessToTeamWithId := ctx.MustGet("team_id").(uint)
 
-	th.Handler.logger.Info("The input is valid",
-		zap.String("teamName", teamName))
-
-	th.Handler.logger.Info("Checking if user have access to requested team")
-
-	cookieUser, _ := ctx.Get("user")
-	hasAccessToTeamWithId := cookieUser.(model.Member).TeamID
-	team := &model.Team{}
-	result := repository.DB.Select("team_name,id,is_verified").Where("id = ?", hasAccessToTeamWithId).First(&team)
-	if result.Error != nil {
-		th.Handler.logger.Error("The team for provided user do not exist or another retreive error occure")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error":  "The team for provided user",
-			"teamId": hasAccessToTeamWithId})
-		return
-	}
-
-	if !strings.EqualFold(team.TeamName, teamName) {
-		th.Handler.logger.Error("User have no acces to this team",
-			zap.String("requestedTeam", teamName),
-			zap.String("teamInCookie", team.TeamName))
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "User have no acces to this team"})
-		return
-	}
-	th.Handler.logger.Info("User have access to requested team")
-
-	th.Handler.logger.Info("Start retreiving data from database",
-		zap.String("team", team.TeamName),
+	th.Handler.Logger.Info("Start retreiving data from database",
+		zap.String("team", teamName),
 		zap.Uint("team_id", hasAccessToTeamWithId))
 
 	members := []model.Member{}
-	result = repository.DB.Model(&model.Member{}).Where("team_id = ?", hasAccessToTeamWithId).Find(&members)
+	result := repository.DB.Model(&model.Member{}).Where("team_id = ?", hasAccessToTeamWithId).Find(&members)
 	if result.Error != nil {
-		th.Handler.logger.Error("Error while retreiving users for team",
-			zap.String("teamName", team.TeamName))
+		th.Handler.Logger.Error("Error while retreiving users for team",
+			zap.String("teamName", teamName))
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error while retreiving users"})
 		return
 	}
-	th.Handler.logger.Info("Sucessfully get members data from database",
+	th.Handler.Logger.Info("Sucessfully get members data from database",
 		zap.Int("recordCollected", len(members)))
 
 	membersToResponse := []model.GetTeamMemberResponse{}
@@ -86,12 +55,12 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	}
 
 	jsonBody, err := json.Marshal(model.GetTeamResponse{
-		TeamName:    team.TeamName,
-		IsVerified:  team.IsVerified,
+		TeamName:    teamName,
+		IsVerified:  teamIsVerified,
 		TeamMembers: membersToResponse,
 	})
 	if err != nil {
-		th.Handler.logger.Error("Error marshaling response")
+		th.Handler.Logger.Error("Error marshaling response")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Response marshall failed",
 		})
@@ -102,36 +71,15 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 }
 
 func (th TeamHandler) ConfirmTeam(ctx *gin.Context) {
-	defer th.Handler.logger.Sync()
+	defer th.Handler.Logger.Sync()
 
-	teamName := ctx.Param("teamname")
-	if teamName == "" {
-		th.Handler.logger.Error("Missing teamName parameter")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Mising teamName parameter"})
-		return
-	}
+	hasAccessToTeamWithId := ctx.MustGet("team_id").(uint)
 
-	th.Handler.logger.Info("The input is valid",
-		zap.String("teamName", teamName))
+	th.Handler.Logger.Info("Update confirmation value")
 
-	th.Handler.logger.Info("Checking if user have access to requested team")
-
-	cookieUser, _ := ctx.Get("user")
-	hasAccessToTeamWithId := cookieUser.(model.Member).TeamID
-	team := &model.Team{}
-	result := repository.DB.Select("team_name,id,is_verified").Where("id = ?", hasAccessToTeamWithId).First(&team)
-	if result.Error != nil {
-		th.Handler.logger.Error("The team for provided user do not exist or another retreive error occure")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "The team for provided user do not exist or user have no acces to that team"})
-		return
-	}
-	th.Handler.logger.Info("User have acces to the team")
-	th.Handler.logger.Info("Update confirmation value")
-
-	err := repository.DB.Model(&model.Team{}).Where("id = ?", team.ID).Update("is_confirmed", true).Error
+	err := repository.DB.Model(&model.Team{}).Where("id = ?", hasAccessToTeamWithId).Update("is_confirmed", true).Error
 	if err != nil {
-		th.Handler.logger.Error("Error inserting to database")
+		th.Handler.Logger.Error("Error inserting to database")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Database insert failed",
 		})
@@ -142,17 +90,17 @@ func (th TeamHandler) ConfirmTeam(ctx *gin.Context) {
 }
 
 func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
-	defer th.Handler.logger.Sync()
+	defer th.Handler.Logger.Sync()
 
 	teams := []model.Team{}
 	err := repository.DB.Model(&model.Team{}).Preload("Members").Find(&teams).Error
 	if err != nil {
-		th.Handler.logger.Error("Error when retreiving teams from database",
+		th.Handler.Logger.Error("Error when retreiving teams from database",
 			zap.Error(err))
 		ctx.AbortWithStatus(500)
 		return
 	}
-	th.Handler.logger.Info("Sucesfully retreive teams")
+	th.Handler.Logger.Info("Sucesfully retreive teams")
 
 	responseTeams := []model.TeamResponse{}
 
@@ -169,7 +117,7 @@ func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
 
 	jsonBody, err := json.Marshal(response)
 	if err != nil {
-		th.Handler.logger.Error("Error marshaling response")
+		th.Handler.Logger.Error("Error marshaling response")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Response marshall failed",
 		})
@@ -180,17 +128,17 @@ func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
 }
 
 func (th TeamHandler) GetAllUsersAsAdmin(ctx *gin.Context) {
-	defer th.Handler.logger.Sync()
+	defer th.Handler.Logger.Sync()
 
 	teams := []model.Team{}
 	err := repository.DB.Model(&model.Team{}).Preload("Members").Find(&teams).Error
 	if err != nil {
-		th.Handler.logger.Error("Error when retreiving teams from database",
+		th.Handler.Logger.Error("Error when retreiving teams from database",
 			zap.Error(err))
 		ctx.AbortWithStatus(500)
 		return
 	}
-	th.Handler.logger.Info("Sucesfully retreive teams")
+	th.Handler.Logger.Info("Sucesfully retreive teams")
 
 	memberResponses := []model.UserResponse{}
 
@@ -225,7 +173,7 @@ func (th TeamHandler) GetAllUsersAsAdmin(ctx *gin.Context) {
 
 	jsonBody, err := json.Marshal(response)
 	if err != nil {
-		th.Handler.logger.Error("Error marshaling response")
+		th.Handler.Logger.Error("Error marshaling response")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Response marshall failed",
 		})

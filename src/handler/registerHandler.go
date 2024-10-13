@@ -66,69 +66,69 @@ func NewRegisterHandler(logger *zap.Logger) *RegisterHandler {
 }
 
 func (rh RegisterHandler) RegisterTeam(ctx *gin.Context) {
-	defer rh.Handler.logger.Sync()
+	defer rh.Handler.Logger.Sync()
 
 	var input model.RegisterTeamRequest
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		rh.Handler.logger.Error("Register team error")
+		rh.Handler.Logger.Error("Register team error")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rh.Handler.logger.Info("JSON input is valid")
+	rh.Handler.Logger.Info("JSON input is valid")
 
 	TeamMembers := make([]model.Member, 0)
 	for _, email := range input.TeamMembersEmails {
 		newMember := model.Member{Email: email, Password: ""}
 		TeamMembers = append(TeamMembers, newMember)
 	}
-	rh.Handler.logger.Info("Team members are created")
+	rh.Handler.Logger.Info("Team members are created")
 
 	uniqueVerificationToken := uuid.NewString()
 	team := &model.Team{TeamName: input.TeamName, Members: TeamMembers, VerificationToken: uniqueVerificationToken, IsVerified: false}
 
-	rh.Handler.logger.Info("Start registration transaction")
+	rh.Handler.Logger.Info("Start registration transaction")
 	tx := repository.DB.Begin()
 	result := tx.Create(&team)
 	if result.Error != nil {
 		tx.Rollback()
-		rh.Handler.logger.Error("Cannot craete new Team")
+		rh.Handler.Logger.Error("Cannot craete new Team")
 		ctx.JSON(http.StatusConflict, gin.H{"error": "Cannot create new team, duplicate"})
 		return
 	}
-	rh.Handler.logger.Info("Team is sucesfully inserted to database")
+	rh.Handler.Logger.Info("Team is sucesfully inserted to database")
 
 	// send verification email
 	err := rh.SendVerificationEmail(team)
 	if err != nil {
 		tx.Rollback()
-		rh.Handler.logger.Error("Error when sending the emails the insert was rollbacked",
+		rh.Handler.Logger.Error("Error when sending the emails the insert was rollbacked",
 			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error sending emails"})
 		return
 	}
 	tx.Commit()
 
-	rh.Handler.logger.Info("Sucesfully created team")
+	rh.Handler.Logger.Info("Sucesfully created team")
 	ctx.AbortWithStatus(201)
 }
 
 func (rh RegisterHandler) RegisterMember(ctx *gin.Context) {
-	defer rh.Handler.logger.Sync()
+	defer rh.Handler.Logger.Sync()
 
 	var input model.RegisterTeamMemberRequest
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		rh.Handler.logger.Error("Register team member error body do not match request pattern")
+		rh.Handler.Logger.Error("Register team member error body do not match request pattern")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rh.Handler.logger.Info("JSON input is valid")
+	rh.Handler.Logger.Info("JSON input is valid")
 
 	memberTeam := &model.Team{}
 	result := repository.DB.Model(&memberTeam).Select("teams.verification_token,teams.team_name,teams.id").Joins("inner join members on members.team_id = teams.id").Where("members.email = ? ", input.Email).First(&memberTeam)
 	if result.Error == gorm.ErrRecordNotFound {
-		rh.Handler.logger.Error("There is no email or no team for that email in database",
+		rh.Handler.Logger.Error("There is no email or no team for that email in database",
 			zap.String("email", input.Email),
 			zap.Error(result.Error))
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "There is no email or no team for that email in database",
@@ -136,28 +136,28 @@ func (rh RegisterHandler) RegisterMember(ctx *gin.Context) {
 		return
 	}
 	if result.Error != nil {
-		rh.Handler.logger.Error("Error when retreiving record from database",
+		rh.Handler.Logger.Error("Error when retreiving record from database",
 			zap.String("email", input.Email),
 			zap.Error(result.Error))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error when retreiving team data from database"})
 		return
 	}
 	if memberTeam.VerificationToken != input.VerificationToken {
-		rh.Handler.logger.Error("Verification token for this email do not match with the database one",
+		rh.Handler.Logger.Error("Verification token for this email do not match with the database one",
 			zap.String("email", input.Email))
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "Verification token for this email do not match with the database one",
 			"email": input.Email})
 		return
 	}
 	if !isOccupationValid(input.Occupation) {
-		rh.Handler.logger.Error("Occupation not valid",
+		rh.Handler.Logger.Error("Occupation not valid",
 			zap.String("email", input.Email),
 			zap.String("occupation", input.Occupation))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Occupation not valid"})
 		return
 	}
 	if !isDietPreferenceValid(input.DietPreference) {
-		rh.Handler.logger.Error("DietPreference not valid",
+		rh.Handler.Logger.Error("DietPreference not valid",
 			zap.String("email", input.Email),
 			zap.String("dietPreference", input.DietPreference))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "DietPreference not valid"})
@@ -166,13 +166,13 @@ func (rh RegisterHandler) RegisterMember(ctx *gin.Context) {
 
 	hash, err := repository.HashPassword(input.Password)
 	if err != nil {
-		rh.Handler.logger.Error("Error when hashing password",
+		rh.Handler.Logger.Error("Error when hashing password",
 			zap.String("email", input.Email))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Hashing password error",
 			"email": input.Email})
 	}
 
-	rh.Handler.logger.Info("Member verification token match with Team verification token and data is valid",
+	rh.Handler.Logger.Info("Member verification token match with Team verification token and data is valid",
 		zap.String("email", input.Email),
 		zap.String("team", memberTeam.TeamName))
 
@@ -192,7 +192,7 @@ func (rh RegisterHandler) RegisterMember(ctx *gin.Context) {
 
 	result = repository.DB.Model(&model.Member{}).Where("email = ?", newMember.Email).Updates(&newMember)
 	if result.Error != nil {
-		rh.Handler.logger.Error("Error when updating the member",
+		rh.Handler.Logger.Error("Error when updating the member",
 			zap.String("email", input.Email),
 			zap.String("teamName", memberTeam.TeamName),
 			zap.Error(result.Error))
@@ -205,19 +205,19 @@ func (rh RegisterHandler) RegisterMember(ctx *gin.Context) {
 
 // TODO: Change email to lazy (or not so lazy) initial from file and mayby separate method
 func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
-	defer rh.Handler.logger.Sync()
+	defer rh.Handler.Logger.Sync()
 
-	rh.Handler.logger.Info("Start authentication")
+	rh.Handler.Logger.Info("Start authentication")
 
 	auth := smtp.PlainAuth("", rh.email, rh.password, rh.emailHost)
-	rh.Handler.logger.Info("Authenticated")
+	rh.Handler.Logger.Info("Authenticated")
 
 	for _, member := range team.Members {
-		rh.Handler.logger.Info("Start sending email",
+		rh.Handler.Logger.Info("Start sending email",
 			zap.String("recipient", member.Email))
 		baseUrl, err := url.Parse(rh.websiteUrl)
 		if err != nil {
-			rh.Handler.logger.Error("Invalid parsing of base URL",
+			rh.Handler.Logger.Error("Invalid parsing of base URL",
 				zap.String("baseURL", rh.websiteUrl))
 			return err
 		}
@@ -317,15 +317,15 @@ func (rh RegisterHandler) SendVerificationEmail(team *model.Team) error {
 		</html>`
 		message += fmt.Sprintf("\r\n%s\r\n", body)
 
-		rh.Handler.logger.Info("Send email",
+		rh.Handler.Logger.Info("Send email",
 			zap.Strings("recipient", to))
 		err = smtp.SendMail(rh.emailHost+":"+rh.emailPort, auth, rh.email, to, []byte(message))
 		if err != nil {
-			rh.Handler.logger.Error("Error sending the email",
+			rh.Handler.Logger.Error("Error sending the email",
 				zap.Error(err))
 			return err
 		}
-		rh.Handler.logger.Info("Email was sucesfully send",
+		rh.Handler.Logger.Info("Email was sucesfully send",
 			zap.String("recipient", member.Email))
 	}
 
