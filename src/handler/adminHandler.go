@@ -124,7 +124,7 @@ func (ah AdminHandler) AdminApproveTeam(ctx *gin.Context) {
 	defer ah.Handler.Logger.Sync()
 
 	teamName := ctx.Param("teamname")
-	var teamApproveRequest model.UpdateTeamRequest
+	var teamApproveRequest model.ApproveTeamRequest
 
 	if teamName == "" {
 		ah.Handler.Logger.Error("There is no team name in the request")

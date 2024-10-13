@@ -75,11 +75,12 @@ func main() {
 			"message": "return headers",
 		})
 	})
-	authGroup.OPTIONS("/team/approve/:teamname", func(ctx *gin.Context) {
+	authGroup.OPTIONS("/user/:email", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
+
 	// Admin Endpoints Options
 	adminAuthGroup.OPTIONS("/teams", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
@@ -101,12 +102,22 @@ func main() {
 			"message": "return headers",
 		})
 	})
-	adminAuthGroup.OPTIONS("/team/confirmation/:teamname", func(ctx *gin.Context) {
+	adminAuthGroup.OPTIONS("/users", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
-	adminAuthGroup.OPTIONS("/users", func(ctx *gin.Context) {
+	adminAuthGroup.OPTIONS("/team/approve/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/user/:email", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/team/:teamname", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -126,6 +137,10 @@ func main() {
 	})
 
 	authGroup.GET("/team/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.RetreiveTeam)
+
+	authGroup.PUT("/team/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.UpdateTeam)
+
+	authGroup.DELETE("/team/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.DeleteTeam)
 
 	authGroup.POST("/team/confirmation/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.ConfirmTeam)
 

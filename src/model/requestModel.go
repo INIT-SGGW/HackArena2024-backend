@@ -59,6 +59,9 @@ type LoginAdminRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type UpdateTeamRequest struct {
+type ApproveTeamRequest struct {
 	Status string `json:"status" binding:"required"`
+}
+type UpdateTeamRequest struct {
+	TeamName string `json:"teamName" binding:"required"`
 }

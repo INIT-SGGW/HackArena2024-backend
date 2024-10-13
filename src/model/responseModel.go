@@ -47,3 +47,7 @@ type UserResponse struct {
 	LastName   string `json:"lastName"`
 	IsVerified bool   `json:"verified"`
 }
+
+type UpdateTeamResponseBody struct {
+	TeamName string `json:"teamName"`
+}

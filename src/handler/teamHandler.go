@@ -4,10 +4,12 @@ import (
 	"INIT-SGGW/hackarena-backend/model"
 	"INIT-SGGW/hackarena-backend/repository"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type TeamHandler struct {
@@ -68,6 +70,73 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	}
 
 	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+}
+
+func (th TeamHandler) UpdateTeam(ctx *gin.Context) {
+	defer th.Handler.Logger.Sync()
+
+	teamName := ctx.MustGet("team_name").(string)
+	hasAccessToTeamWithId := ctx.MustGet("team_id").(uint)
+
+	var updateRequest model.UpdateTeamRequest
+
+	if err := ctx.ShouldBindJSON(&updateRequest); err != nil {
+		th.Handler.Logger.Error("Update team request body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	th.Handler.Logger.Info("JSON input is valid")
+
+	if err := repository.DB.Model(&model.Team{}).Where("id = ?", hasAccessToTeamWithId).Update("team_name", updateRequest.TeamName).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			th.Handler.Logger.Error("The team name already existed")
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		} else {
+			th.Handler.Logger.Error("Error updating team name",
+				zap.Error(err))
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	th.Handler.Logger.Info("Team name updated",
+		zap.String("oldTeamName", teamName),
+		zap.String("newTeamName", updateRequest.TeamName))
+
+	response := model.UpdateTeamResponseBody{TeamName: updateRequest.TeamName}
+
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		th.Handler.Logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+
+}
+
+func (th TeamHandler) DeleteTeam(ctx *gin.Context) {
+	defer th.Handler.Logger.Sync()
+
+	teamName := ctx.MustGet("team_name").(string)
+	hasAccessToTeamWithId := ctx.MustGet("team_id").(uint)
+
+	err := repository.DB.Model(&model.Team{}).Preload("members").Where("teams.id = ?", hasAccessToTeamWithId).Delete(&model.Team{}).Error
+	if err != nil {
+		th.Handler.Logger.Error("Error deleting team from database",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response while deleting team",
+		})
+		return
+	}
+	th.Handler.Logger.Info("Team sucesfully deleted",
+		zap.String("teamName", teamName))
+	ctx.AbortWithStatus(204)
+
 }
 
 func (th TeamHandler) ConfirmTeam(ctx *gin.Context) {
