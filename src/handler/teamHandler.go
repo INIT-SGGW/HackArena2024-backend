@@ -26,7 +26,9 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	defer th.Handler.Logger.Sync()
 
 	teamName := ctx.MustGet("team_name").(string)
-	teamIsVerified := ctx.MustGet("team_is_veifird").(bool)
+	teamIsVerified := ctx.MustGet("team_is_verified").(bool)
+	teamIsConfirmed := ctx.MustGet("team_is_confirmed").(bool)
+	teamApproveStatus := ctx.MustGet("team_approve").(string)
 	hasAccessToTeamWithId := ctx.MustGet("team_id").(uint)
 
 	th.Handler.Logger.Info("Start retreiving data from database",
@@ -57,9 +59,11 @@ func (th TeamHandler) RetreiveTeam(ctx *gin.Context) {
 	}
 
 	jsonBody, err := json.Marshal(model.GetTeamResponse{
-		TeamName:    teamName,
-		IsVerified:  teamIsVerified,
-		TeamMembers: membersToResponse,
+		TeamName:      teamName,
+		IsVerified:    teamIsVerified,
+		IsConfirmed:   teamIsConfirmed,
+		ApproveStatus: teamApproveStatus,
+		TeamMembers:   membersToResponse,
 	})
 	if err != nil {
 		th.Handler.Logger.Error("Error marshaling response")
@@ -177,6 +181,7 @@ func (th TeamHandler) GetAllTeamsAsAdmin(ctx *gin.Context) {
 		newTeam := model.TeamResponse{
 			TeamName:         team.TeamName,
 			IsVerified:       team.IsVerified,
+			IsConfirmed:      team.IsConfirmed,
 			ApproveSatatus:   team.ApproveStatus,
 			TeamMembersCount: len(team.Members),
 		}

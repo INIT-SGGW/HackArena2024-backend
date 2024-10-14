@@ -135,7 +135,7 @@ func main() {
 			"message": "User logout",
 		})
 	})
-
+	// Team endpoints
 	authGroup.GET("/team/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.RetreiveTeam)
 
 	authGroup.PUT("/team/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.UpdateTeam)
@@ -144,6 +144,12 @@ func main() {
 
 	authGroup.POST("/team/confirmation/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), TeamHandler.ConfirmTeam)
 
+	//User endpoints
+	authGroup.GET("/user/:email", repository.CookieAuth, UserAccountHandler.GetMember)
+
+	// authGroup.PUT("/user/:email", repository.CookieAuth, UserAccountHandler.UpdateMember)
+
+	// Account managment
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
 
 	authGroup.POST("/password/change", repository.CookieAuth, UserAccountHandler.ChangePassword)

@@ -108,7 +108,52 @@ func (uh UserAccountHandler) LoginUser(ctx *gin.Context) {
 
 }
 
-//Chanhe to member not team pasword
+func (uh UserAccountHandler) GetMember(ctx *gin.Context) {
+	defer uh.Handler.Logger.Sync()
+
+	cookieUser := ctx.MustGet("user").(model.Member)
+	var firstName string
+	var lastName string
+	var occupation string
+	var dietPreference string
+	var school string
+	if !cookieUser.IsVerified {
+		firstName = "not verified"
+		lastName = "not verified"
+		occupation = "not verified"
+		dietPreference = "not verified"
+		school = "not verified"
+	} else {
+		firstName = *cookieUser.FirstName
+		lastName = *cookieUser.LastName
+		occupation = *cookieUser.Occupation
+		dietPreference = *cookieUser.DietPrefernces
+		school = *cookieUser.School
+	}
+
+	responseBody := &model.GetTeamMemberResponseBody{
+		Email:          cookieUser.Email,
+		FirstName:      firstName,
+		LastName:       lastName,
+		DateOfBirth:    *cookieUser.DateOfBirth,
+		Occupation:     occupation,
+		DietPreference: dietPreference,
+		School:         school,
+	}
+
+	jsonBody, err := json.Marshal(responseBody)
+	if err != nil {
+		uh.Handler.Logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshal failed",
+		})
+		return
+	}
+
+	uh.Handler.Logger.Info("Response suscesfully parsed")
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+
+}
 
 func (uh UserAccountHandler) ChangePassword(ctx *gin.Context) {
 	defer uh.Handler.Logger.Sync()

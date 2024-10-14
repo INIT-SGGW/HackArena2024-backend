@@ -1,5 +1,7 @@
 package model
 
+import "gorm.io/datatypes"
+
 // Login response
 type LoginResponse struct {
 	TeamName string `json:"teamName"`
@@ -8,9 +10,11 @@ type LoginResponse struct {
 
 // Struct represnting response for Get /team endpoint
 type GetTeamResponse struct {
-	TeamName    string                  `json:"teamName"`
-	IsVerified  bool                    `json:"verified"`
-	TeamMembers []GetTeamMemberResponse `json:"teamMembers"`
+	TeamName      string                  `json:"teamName"`
+	IsVerified    bool                    `json:"verified"`
+	ApproveStatus string                  `json:"approved"`
+	IsConfirmed   bool                    `json:"confirmed"`
+	TeamMembers   []GetTeamMemberResponse `json:"teamMembers"`
 }
 
 // Struct representing team member in response for Get /team endpoint
@@ -31,6 +35,7 @@ type TeamResponse struct {
 	TeamName         string `json:"teamName"`
 	IsVerified       bool   `json:"verified"`
 	ApproveSatatus   string `json:"approved"`
+	IsConfirmed      bool   `json:"confirmed"`
 	TeamMembersCount int    `json:"numberOfUsers"`
 }
 
@@ -50,4 +55,14 @@ type UserResponse struct {
 
 type UpdateTeamResponseBody struct {
 	TeamName string `json:"teamName"`
+}
+
+type GetTeamMemberResponseBody struct {
+	Email          string         `json:"email"`
+	FirstName      string         `json:"firstName"`
+	LastName       string         `json:"lastName"`
+	DateOfBirth    datatypes.Date `json:"dateOfBirth"`
+	Occupation     string         `json:"occupation"`
+	DietPreference string         `json:"dietPreference"`
+	School         string         `json:"school,omitempty"`
 }
