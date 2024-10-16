@@ -147,7 +147,7 @@ func main() {
 	//User endpoints
 	authGroup.GET("/user/:email", repository.CookieAuth, UserAccountHandler.GetMember)
 
-	// authGroup.PUT("/user/:email", repository.CookieAuth, UserAccountHandler.UpdateMember)
+	authGroup.PUT("/user/:email", repository.CookieAuth, UserAccountHandler.UpdateMember)
 
 	// Account managment
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)

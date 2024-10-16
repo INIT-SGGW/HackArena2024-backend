@@ -66,3 +66,13 @@ type GetTeamMemberResponseBody struct {
 	DietPreference string         `json:"dietPreference"`
 	School         string         `json:"school,omitempty"`
 }
+
+type UpdateMemberResponseBody struct {
+	Email          string         `json:"email"`
+	FirstName      string         `json:"firstName"`
+	LastName       string         `json:"lastName"`
+	DateOfBirth    datatypes.Date `json:"dateOfBirth"`
+	Occupation     string         `json:"occupation"`
+	DietPreference string         `json:"dietPreference"`
+	School         string         `json:"school,omitempty"`
+}
