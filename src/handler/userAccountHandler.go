@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 )
 
 type UserAccountHandler struct {
@@ -104,6 +105,60 @@ func (uh UserAccountHandler) LoginUser(ctx *gin.Context) {
 	}
 
 	uh.Handler.Logger.Info("Sucesfully log in")
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+
+}
+
+func (uh UserAccountHandler) UpdateMember(ctx *gin.Context) {
+	defer uh.Handler.Logger.Sync()
+
+	cookieUser := ctx.MustGet("user").(model.Member)
+
+	var updateMemberRequest model.UpdateMemberRequest
+	if err := ctx.ShouldBindJSON(&updateMemberRequest); err != nil {
+		uh.Handler.Logger.Error("Input body error")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	uh.Handler.Logger.Info("Input body is valid JSON")
+
+	updateUser := model.Member{
+		FirstName:      &updateMemberRequest.FirstName,
+		LastName:       &updateMemberRequest.LastName,
+		DateOfBirth:    (*datatypes.Date)(&updateMemberRequest.DateOfBirth),
+		Occupation:     &updateMemberRequest.Occupation,
+		DietPrefernces: &updateMemberRequest.DietPreference,
+		School:         &updateMemberRequest.School,
+	}
+	err := repository.DB.Model(&model.Member{}).Where("id = ?", cookieUser.ID).Updates(updateUser).Error
+	if err != nil {
+		uh.Handler.Logger.Error("Error updating user data to database",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database update error",
+		})
+		return
+	}
+	uh.Handler.Logger.Info("Sucesfully updated user data")
+
+	responseBody := &model.UpdateMemberResponseBody{
+		FirstName:      updateMemberRequest.FirstName,
+		LastName:       updateMemberRequest.LastName,
+		DateOfBirth:    (datatypes.Date)(updateMemberRequest.DateOfBirth),
+		Occupation:     updateMemberRequest.Occupation,
+		DietPreference: updateMemberRequest.DietPreference,
+		School:         updateMemberRequest.School,
+	}
+	jsonBody, err := json.Marshal(responseBody)
+	if err != nil {
+		uh.Handler.Logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshal failed",
+		})
+		return
+	}
+
+	uh.Handler.Logger.Info("Response suscesfully parsed")
 	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
 
 }
