@@ -40,3 +40,15 @@ type HackArenaAdmin struct {
 	Password  string
 	Privilage string `gorm:"default:SuperUser"`
 }
+
+// Models for email operations
+type MailingGroupFilter struct {
+	gorm.Model
+	FilterName string `gorm:"index:idx_filter_name,unique"`
+	Query      string
+}
+
+type EmailTemplates struct {
+	TemplateName string `gorm:"index:idx_template_name,unique"`
+	FileName     string
+}

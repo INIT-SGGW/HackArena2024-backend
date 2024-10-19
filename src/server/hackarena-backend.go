@@ -15,6 +15,7 @@ func main() {
 	RegisterHandler := handler.NewRegisterHandler(logger)
 	TeamHandler := handler.NewTeamHandler(logger)
 	AdminHandler := handler.NewAdminHandler(logger)
+	EmailHandler := handler.NewEmailHandler(logger)
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
@@ -122,6 +123,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/send/mail", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
@@ -176,6 +182,7 @@ func main() {
 
 	adminAuthGroup.POST("/team/confirmation/:teamname", repository.AdminCookieAuth, AdminHandler.ConfirmTeam)
 
+	adminAuthGroup.POST("/send/mail", repository.AdminCookieAuth, EmailHandler.SendEmail)
 	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {
 		c.JSON(200, gin.H{

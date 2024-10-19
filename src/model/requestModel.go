@@ -58,6 +58,19 @@ type ForgotPasswordRequest struct {
 	Email string `json:"email" binding:"required"`
 }
 
+type SendEmailRequest struct {
+	Recipients EmailRecipients `json:"to" binding:"required"`
+	Sender     string          `json:"from" binding:"required"`
+	Template   string          `json:"teamplate,omitempty"`
+	Text       string          `json:"text,omitempty"`
+	Date       time.Time       `json:"date,omitempty"`
+}
+
+type EmailRecipients struct {
+	MailingGroups string   `json:"mailingGroups" binding:"required"`
+	Emails        []string `json:"emails" binding:"required"`
+}
+
 // Admin register body
 type RegisterAdminRequest struct {
 	Name     string `json:"name" binding:"required"`
