@@ -23,3 +23,4 @@ go.work
 src/hackarena-backend
 src/*.env
 src/.env
+src/dockerfile
