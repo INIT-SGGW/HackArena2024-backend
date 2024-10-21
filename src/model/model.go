@@ -11,9 +11,10 @@ type Team struct {
 	TeamName          string `gorm:"uniqueIndex"`
 	VerificationToken string
 	IsVerified        bool
-	IsConfirmed       bool     `gorm:"default:false"`
-	ApproveStatus     string   `gorm:"default:pending"`
-	Members           []Member `gorm:"foreignKey:team_id"`
+	IsConfirmed       bool         `gorm:"default:false"`
+	ApproveStatus     string       `gorm:"default:pending"`
+	File              SolutionFile `gorm:"foreignKey:team_id"`
+	Members           []Member     `gorm:"foreignKey:team_id"`
 }
 
 type Member struct {
@@ -29,6 +30,12 @@ type Member struct {
 	Agreement      bool
 	School         *string
 	IsVerified     bool
+}
+
+type SolutionFile struct {
+	gorm.Model
+	TeamID   uint
+	FileName string
 }
 
 // Admin account DB Object

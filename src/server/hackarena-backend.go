@@ -11,11 +11,6 @@ import (
 func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
-	UserAccountHandler := handler.NewUserAccountHandler(logger)
-	RegisterHandler := handler.NewRegisterHandler(logger)
-	TeamHandler := handler.NewTeamHandler(logger)
-	AdminHandler := handler.NewAdminHandler(logger)
-	EmailHandler := handler.NewEmailHandler(logger)
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
@@ -28,6 +23,13 @@ func main() {
 	repository.ConnectDataBase()
 
 	repository.SyncDB() // DBAutoMigration
+
+	UserAccountHandler := handler.NewUserAccountHandler(logger)
+	RegisterHandler := handler.NewRegisterHandler(logger)
+	TeamHandler := handler.NewTeamHandler(logger)
+	AdminHandler := handler.NewAdminHandler(logger)
+	EmailHandler := handler.NewEmailHandler(logger)
+	FileHandler := handler.NewFileHandler(logger, repository.Config.FilePath)
 
 	authGroup.OPTIONS("/register/team", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
@@ -77,6 +79,11 @@ func main() {
 		})
 	})
 	authGroup.OPTIONS("/user/:email", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	authGroup.OPTIONS("/upload/solution/:teamname", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -161,6 +168,9 @@ func main() {
 	authGroup.POST("/password/change", repository.CookieAuth, UserAccountHandler.ChangePassword)
 
 	authGroup.POST("/password/reset", UserAccountHandler.ResetPassword)
+
+	// File upload download logic
+	authGroup.POST("/upload/solution/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.UploadFile)
 
 	// Admin endpoints
 	adminAuthGroup.POST("/login", AdminHandler.LoginAdmin)
