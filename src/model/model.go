@@ -13,6 +13,7 @@ type Team struct {
 	IsVerified        bool
 	IsConfirmed       bool         `gorm:"default:false"`
 	ApproveStatus     string       `gorm:"default:pending"`
+	IsSolutionSend    bool         `gorm:"default:false"`
 	File              SolutionFile `gorm:"foreignKey:team_id"`
 	Members           []Member     `gorm:"foreignKey:team_id"`
 }

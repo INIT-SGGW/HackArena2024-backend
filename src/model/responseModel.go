@@ -76,3 +76,13 @@ type UpdateMemberResponseBody struct {
 	DietPreference string         `json:"dietPreference"`
 	School         string         `json:"school,omitempty"`
 }
+
+type GetAllTeamsOnEventResponse struct {
+	Teams []TeamOnEvent `json:"teams"`
+}
+
+type TeamOnEvent struct {
+	TeamName           string `json:"teamName"`
+	ConfirmationStatus bool   `json:"confirmationStatus"`
+	SolutionStatus     bool   `json:"solutionStatus"`
+}

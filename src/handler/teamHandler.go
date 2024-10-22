@@ -257,3 +257,45 @@ func (th TeamHandler) GetAllUsersAsAdmin(ctx *gin.Context) {
 	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
 
 }
+
+func (th TeamHandler) GetAllTeamsOnEvent(ctx *gin.Context) {
+	defer th.Handler.Logger.Sync()
+
+	teams := []model.Team{}
+	err := repository.DB.Model(&model.Team{}).Where("approve_status = 'approved' and is_confirmed = true").Find(&teams).Error
+	if err != nil {
+		th.Handler.Logger.Error("Error retreiving teams from Database",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error retreiving teams from Database",
+		})
+		return
+	}
+	th.Handler.Logger.Info("Sucesfully retreive teams data from database")
+
+	teamsOnEvent := []model.TeamOnEvent{}
+	for _, team := range teams {
+		newTeamOnEvent := &model.TeamOnEvent{
+			TeamName:           team.TeamName,
+			ConfirmationStatus: team.IsConfirmed,
+			SolutionStatus:     team.IsSolutionSend,
+		}
+		teamsOnEvent = append(teamsOnEvent, *newTeamOnEvent)
+	}
+	response := &model.GetAllTeamsOnEventResponse{
+		Teams: teamsOnEvent,
+	}
+	th.Handler.Logger.Info("Sucesfully parse teams to response object")
+
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		th.Handler.Logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusAccepted, "application/json", jsonBody)
+
+}
