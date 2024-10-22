@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 
 	"github.com/gin-gonic/gin"
@@ -117,4 +118,66 @@ func (fh FileHandler) UploadFile(ctx *gin.Context) {
 
 	ctx.AbortWithStatus(http.StatusCreated)
 
+}
+
+func (fh FileHandler) DownloadSingleFile(ctx *gin.Context) {
+	defer fh.Handler.Logger.Sync()
+
+	teamName := ctx.Param("teamname")
+	var team model.Team
+	var file model.SolutionFile
+
+	row := repository.DB.Select("id").Where("team_name = ?", teamName).Find(&team)
+
+	if team.ID == 0 || row.Error != nil {
+		fh.Handler.Logger.Error("Invalid team name")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":    "Cannot find team for the provided teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+
+	row = repository.DB.Select("file_name").Where("team_id = ?", team.ID).Find(&file)
+	if errors.Is(row.Error, gorm.ErrRecordNotFound) {
+		fh.Handler.Logger.Error("Invalid team name")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":    "Cannot find file for the teamname",
+			"teamName": teamName,
+		})
+		return
+	}
+	fh.Handler.Logger.Info("Start processing file",
+		zap.String("teamName", teamName),
+		zap.String("filePath", file.FileName))
+
+	fileData, err := os.Open(file.FileName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file descriptor"})
+		return
+	}
+	defer fileData.Close()
+
+	fileHeader := make([]byte, 512)
+	_, err = fileData.Read(fileHeader)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+	fileContentType := http.DetectContentType(fileHeader)
+	//Get the file info
+	fileInfo, err := fileData.Stat()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get file info"})
+		return
+	}
+
+	ctx.Header("Content-Description", "File Transfer")
+	ctx.Header("Content-Transfer-Encoding", "binary")
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip", teamName))
+	ctx.Header("Content-Type", fileContentType)
+	ctx.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	ctx.File(file.FileName)
+
+	ctx.String(http.StatusOK, "Endpoint sucesfully reached")
 }
