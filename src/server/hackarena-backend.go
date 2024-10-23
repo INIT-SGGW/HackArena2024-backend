@@ -120,6 +120,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/team/confirmation/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 	adminAuthGroup.OPTIONS("/user/:email", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
