@@ -85,4 +85,5 @@ type TeamOnEvent struct {
 	TeamName           string `json:"teamName"`
 	ConfirmationStatus bool   `json:"confirmationStatus"`
 	SolutionStatus     bool   `json:"solutionStatus"`
+	ApprovedStatus     string `json:"approvedStatus"`
 }
