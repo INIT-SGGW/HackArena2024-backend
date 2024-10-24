@@ -88,6 +88,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	// Admin Endpoints Options
 	adminAuthGroup.OPTIONS("/teams", func(ctx *gin.Context) {
@@ -155,6 +160,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
@@ -189,8 +199,11 @@ func main() {
 
 	authGroup.POST("/password/reset", UserAccountHandler.ResetPassword)
 
-	// File upload download logic
-	authGroup.POST("/upload/solution/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.UploadMatchFile)
+	// File upload solution logic
+	authGroup.POST("/upload/solution/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.UploadSolutionFile)
+
+	// Download match file logic
+	authGroup.GET("/match/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.DownloadSingleMatchFile)
 
 	// Admin endpoints
 	adminAuthGroup.POST("/login", AdminHandler.LoginAdmin)
