@@ -150,6 +150,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/upload/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
@@ -185,7 +190,7 @@ func main() {
 	authGroup.POST("/password/reset", UserAccountHandler.ResetPassword)
 
 	// File upload download logic
-	authGroup.POST("/upload/solution/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.UploadFile)
+	authGroup.POST("/upload/solution/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.UploadMatchFile)
 
 	// Admin endpoints
 	adminAuthGroup.POST("/login", AdminHandler.LoginAdmin)
@@ -209,7 +214,9 @@ func main() {
 
 	adminAuthGroup.POST("/send/mail", repository.AdminCookieAuth, EmailHandler.SendEmail)
 
-	adminAuthGroup.GET("/solution/:teamname", repository.AdminCookieAuth, FileHandler.DownloadSingleFile)
+	adminAuthGroup.GET("/solution/:teamname", repository.AdminCookieAuth, FileHandler.DownloadSingleSolutionFile)
+
+	adminAuthGroup.POST("/upload/match/:teamname", repository.AdminCookieAuth, FileHandler.UploadMatchFile)
 
 	adminAuthGroup.GET("/event/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsOnEvent)
 
