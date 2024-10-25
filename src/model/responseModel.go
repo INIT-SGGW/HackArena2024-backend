@@ -87,3 +87,8 @@ type TeamOnEvent struct {
 	SolutionStatus     bool   `json:"solutionStatus"`
 	ApprovedStatus     string `json:"approvedStatus"`
 }
+
+type CheckMatchResponse struct {
+	IsMatchFieldExist bool   `json:"isMatchFileSend"`
+	MatchFileName     string `json:""`
+}

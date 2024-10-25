@@ -4,6 +4,7 @@ import (
 	"INIT-SGGW/hackarena-backend/model"
 	"INIT-SGGW/hackarena-backend/repository"
 	"INIT-SGGW/hackarena-backend/service"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -341,4 +342,111 @@ func (fh FileHandler) DownloadSingleMatchFile(ctx *gin.Context) {
 	ctx.File(file.FileName)
 
 	ctx.String(http.StatusOK, "Endpoint sucesfully reached")
+}
+
+// Check Match status endpoints
+
+func (fh FileHandler) UserCheckMatchFile(ctx *gin.Context) {
+	defer fh.Handler.Logger.Sync()
+
+	teamID := ctx.MustGet("team_id").(uint)
+	teamVerificationToken := ctx.MustGet("team_verification_token").(string)
+	response := &model.CheckMatchResponse{
+		IsMatchFieldExist: false,
+		MatchFileName:     "",
+	}
+
+	var matchFile model.MatchFile
+	err := repository.DB.Model(&model.MatchFile{}).Select("id,file_name").Where("team_id = ?", teamID).First(&matchFile).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		fh.Handler.Logger.Error("Error in retreiving data from database",
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed in databse connection"})
+		return
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		jsonBody, err := json.Marshal(response)
+		if err != nil {
+			fh.Handler.Logger.Error("Error marshaling response")
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Response marshall failed",
+			})
+			return
+		}
+
+		ctx.Data(http.StatusOK, "application/json", jsonBody)
+		return
+	}
+
+	response = &model.CheckMatchResponse{
+		IsMatchFieldExist: true,
+		MatchFileName:     fmt.Sprintf("%s.json", teamVerificationToken),
+	}
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		fh.Handler.Logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusOK, "application/json", jsonBody)
+}
+
+func (fh FileHandler) AdminCheckMatchFile(ctx *gin.Context) {
+	defer fh.Handler.Logger.Sync()
+
+	teamName := ctx.Param("teamname")
+	response := &model.CheckMatchResponse{
+		IsMatchFieldExist: false,
+		MatchFileName:     "",
+	}
+
+	var team model.Team
+	err := repository.DB.Model(&model.Team{}).Where("teams.team_name = ?", teamName).Preload("MatchFile").First(&team).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) || team.ID < 1 {
+		fh.Handler.Logger.Error("There is no such team in databse",
+			zap.String("teamName", teamName))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":        "There is nos such team in database",
+			"sendTeamName": teamName,
+		})
+		return
+	}
+	if err != nil {
+		fh.Handler.Logger.Error("Error retreiving team data from database")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database query fail failed",
+		})
+		return
+	}
+	if team.MatchFile.TeamID != team.ID {
+		jsonBody, err := json.Marshal(response)
+		if err != nil {
+			fh.Handler.Logger.Error("Error marshaling response")
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Response marshall failed",
+			})
+			return
+		}
+
+		ctx.Data(http.StatusOK, "application/json", jsonBody)
+		return
+	}
+
+	response = &model.CheckMatchResponse{
+		IsMatchFieldExist: true,
+		MatchFileName:     fmt.Sprintf("%s.json", team.VerificationToken),
+	}
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		fh.Handler.Logger.Error("Error marshaling response")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Response marshall failed",
+		})
+		return
+	}
+
+	ctx.Data(http.StatusOK, "application/json", jsonBody)
 }

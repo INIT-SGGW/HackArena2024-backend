@@ -93,6 +93,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/check/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	// Admin Endpoints Options
 	adminAuthGroup.OPTIONS("/teams", func(ctx *gin.Context) {
@@ -160,7 +165,7 @@ func main() {
 			"message": "return headers",
 		})
 	})
-	adminAuthGroup.OPTIONS("/match/:teamname", func(ctx *gin.Context) {
+	adminAuthGroup.OPTIONS("/check/match/:teamname", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -191,6 +196,8 @@ func main() {
 	authGroup.GET("/user/:email", repository.CookieAuth, UserAccountHandler.GetMember)
 
 	authGroup.PUT("/user/:email", repository.CookieAuth, UserAccountHandler.UpdateMember)
+
+	authGroup.GET("/check/match/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), FileHandler.UserCheckMatchFile)
 
 	// Account managment
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
@@ -232,6 +239,8 @@ func main() {
 	adminAuthGroup.POST("/upload/match/:teamname", repository.AdminCookieAuth, FileHandler.UploadMatchFile)
 
 	adminAuthGroup.GET("/event/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsOnEvent)
+
+	adminAuthGroup.GET("/check/match/:teamname", repository.AdminCookieAuth, FileHandler.AdminCheckMatchFile)
 
 	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {
