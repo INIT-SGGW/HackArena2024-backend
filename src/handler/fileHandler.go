@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -17,10 +18,11 @@ import (
 )
 
 type FileHandler struct {
-	Handler                   Handler
-	pathToSolutionFileStorage string
-	pathToMatchFileStorage    string
-	service                   *service.FileService
+	Handler                      Handler
+	pathToSolutionFileStorage    string
+	pathToMatchFileStorage       string
+	pathToAllSolutionTempStorage string
+	service                      *service.FileService
 }
 
 func NewFileHandler(Logger *zap.Logger, pathToSolutionFileStorage string) *FileHandler {
@@ -30,11 +32,17 @@ func NewFileHandler(Logger *zap.Logger, pathToSolutionFileStorage string) *FileH
 		Logger.Error("The HA_ADMIN_FILE_STORAGE environmental variable is missing")
 		os.Exit(2)
 	}
+	pathToAllSolutionTempStorage, exist := os.LookupEnv("HA_ALL_FILE_STORAGE")
+	if !exist {
+		Logger.Error("The HA_ALL_FILE_STORAGE environmental variable is missing")
+		os.Exit(2)
+	}
 	return &FileHandler{
-		Handler:                   *NewHandler(Logger),
-		service:                   service.NewFileService(Logger, pathToSolutionFileStorage),
-		pathToSolutionFileStorage: pathToSolutionFileStorage,
-		pathToMatchFileStorage:    pathToMatchFileStorage,
+		Handler:                      *NewHandler(Logger),
+		service:                      service.NewFileService(Logger, pathToSolutionFileStorage, pathToAllSolutionTempStorage),
+		pathToSolutionFileStorage:    pathToSolutionFileStorage,
+		pathToMatchFileStorage:       pathToMatchFileStorage,
+		pathToAllSolutionTempStorage: pathToAllSolutionTempStorage,
 	}
 }
 
@@ -336,7 +344,7 @@ func (fh FileHandler) DownloadSingleMatchFile(ctx *gin.Context) {
 
 	ctx.Header("Content-Description", "File Transfer")
 	ctx.Header("Content-Transfer-Encoding", "binary")
-	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.pdf", teamName))
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.json", teamName))
 	ctx.Header("Content-Type", fileContentType)
 	ctx.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	ctx.File(file.FileName)
@@ -449,4 +457,106 @@ func (fh FileHandler) AdminCheckMatchFile(ctx *gin.Context) {
 	}
 
 	ctx.Data(http.StatusOK, "application/json", jsonBody)
+}
+
+func (fh FileHandler) GetAllFiles(ctx *gin.Context) {
+	defer fh.Handler.Logger.Sync()
+
+	teams := []model.Team{}
+	err := repository.DB.Model(&model.Team{}).Where("is_solution_send = true").Preload("SolutionFile").Find(&teams).Error
+	if err != nil {
+		fh.Handler.Logger.Error("Error querying database")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database query error",
+		})
+		return
+	}
+	fh.Handler.Logger.Info("Sucesfully retreive teams from database")
+	t := time.Now()
+
+	directoryToZip := fmt.Sprintf("%s/temp-%s", fh.pathToAllSolutionTempStorage, t.Format(time.Kitchen))
+
+	err = os.Mkdir(directoryToZip, 0755)
+	if err != nil {
+		fh.Handler.Logger.Error("Error creating temp directory")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Directory create error",
+		})
+		return
+	}
+	fh.Handler.Logger.Info("Create temp directory")
+
+	for _, team := range teams {
+		if team.SolutionFile.ID > 0 {
+			srcFile := team.SolutionFile.FileName
+			dstFile := fmt.Sprintf("%s/%s.zip", directoryToZip, team.TeamName)
+			fh.Handler.Logger.Info("Start copying the file",
+				zap.String("srcFile", srcFile),
+				zap.String("dstFile", dstFile))
+			err = fh.service.CopyFile(srcFile, dstFile)
+			if err != nil {
+				fh.Handler.Logger.Error("Error copying the file",
+					zap.Error(err))
+				ctx.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Copy file error",
+					"srcFile": "team.SolutionFile.FileName",
+					"dstFile": fmt.Sprintf("%s/%s", directoryToZip, team.TeamName),
+				})
+				return
+			}
+			fh.Handler.Logger.Info("File sucesfully copied",
+				zap.String("srcFile", srcFile),
+				zap.String("dstFile", dstFile))
+		}
+	}
+	fh.Handler.Logger.Info("All files sucesfully copied")
+
+	fh.Handler.Logger.Info("Start archiving files",
+		zap.String("dir", directoryToZip))
+
+	archivePath := fmt.Sprintf("%s/solutions-%s", fh.pathToAllSolutionTempStorage, t.Format(time.Kitchen))
+	err = fh.service.ZipArchive(directoryToZip, archivePath)
+	if err != nil {
+		fh.Handler.Logger.Error("Error archiving directory",
+			zap.String("dir", directoryToZip),
+			zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Zip archive error",
+		})
+		return
+	}
+	fh.Handler.Logger.Info("Files sucesfully archive",
+		zap.String("archive", archivePath))
+
+	// Add attachment to the reponse
+	fileData, err := os.Open(archivePath)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file descriptor"})
+		return
+	}
+	defer fileData.Close()
+
+	fileHeader := make([]byte, 512)
+	_, err = fileData.Read(fileHeader)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+	fileContentType := http.DetectContentType(fileHeader)
+	//Get the file info
+	fileInfo, err := fileData.Stat()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get file info"})
+		return
+	}
+
+	ctx.Header("Content-Description", "File Transfer")
+	ctx.Header("Content-Transfer-Encoding", "binary")
+	ctx.Header("Content-Disposition", "attachment; filename=solutions.zip")
+	ctx.Header("Content-Type", fileContentType)
+	ctx.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	ctx.File(archivePath)
+
+	ctx.String(http.StatusOK, "All solutions zip sucesfully send")
+
 }

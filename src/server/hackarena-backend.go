@@ -170,6 +170,11 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/solutions", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	authGroup.POST("/register/team", RegisterHandler.RegisterTeam)
 
@@ -241,6 +246,8 @@ func main() {
 	adminAuthGroup.GET("/event/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsOnEvent)
 
 	adminAuthGroup.GET("/check/match/:teamname", repository.AdminCookieAuth, FileHandler.AdminCheckMatchFile)
+
+	adminAuthGroup.GET("/solutions", repository.AdminCookieAuth, FileHandler.GetAllFiles)
 
 	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {
