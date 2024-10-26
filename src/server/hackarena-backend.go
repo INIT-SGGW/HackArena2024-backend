@@ -11,10 +11,6 @@ import (
 func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
-	UserAccountHandler := handler.NewUserAccountHandler(logger)
-	RegisterHandler := handler.NewRegisterHandler(logger)
-	TeamHandler := handler.NewTeamHandler(logger)
-	AdminHandler := handler.NewAdminHandler(logger)
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
@@ -27,6 +23,13 @@ func main() {
 	repository.ConnectDataBase()
 
 	repository.SyncDB() // DBAutoMigration
+
+	UserAccountHandler := handler.NewUserAccountHandler(logger)
+	RegisterHandler := handler.NewRegisterHandler(logger)
+	TeamHandler := handler.NewTeamHandler(logger)
+	AdminHandler := handler.NewAdminHandler(logger)
+	EmailHandler := handler.NewEmailHandler(logger)
+	FileHandler := handler.NewFileHandler(logger, repository.Config.FilePath)
 
 	authGroup.OPTIONS("/register/team", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
@@ -80,6 +83,21 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	authGroup.OPTIONS("/upload/solution/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	authGroup.OPTIONS("/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	authGroup.OPTIONS("/check/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 
 	// Admin Endpoints Options
 	adminAuthGroup.OPTIONS("/teams", func(ctx *gin.Context) {
@@ -112,12 +130,47 @@ func main() {
 			"message": "return headers",
 		})
 	})
+	adminAuthGroup.OPTIONS("/team/confirmation/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
 	adminAuthGroup.OPTIONS("/user/:email", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
 	})
 	adminAuthGroup.OPTIONS("/team/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/send/mail", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/event/teams", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/solution/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/upload/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/check/match/:teamname", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "return headers",
+		})
+	})
+	adminAuthGroup.OPTIONS("/solutions", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "return headers",
 		})
@@ -149,12 +202,20 @@ func main() {
 
 	authGroup.PUT("/user/:email", repository.CookieAuth, UserAccountHandler.UpdateMember)
 
+	authGroup.GET("/check/match/:teamname", repository.CookieAuth, TeamHandler.Handler.ValidateTeamScope(), FileHandler.UserCheckMatchFile)
+
 	// Account managment
 	authGroup.POST("/password/forgot", UserAccountHandler.RestartForgotPassword)
 
 	authGroup.POST("/password/change", repository.CookieAuth, UserAccountHandler.ChangePassword)
 
 	authGroup.POST("/password/reset", UserAccountHandler.ResetPassword)
+
+	// File upload solution logic
+	authGroup.POST("/upload/solution/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.UploadSolutionFile)
+
+	// Download match file logic
+	authGroup.GET("/match/:teamname", repository.CookieAuth, FileHandler.Handler.ValidateTeamScope(), FileHandler.DownloadSingleMatchFile)
 
 	// Admin endpoints
 	adminAuthGroup.POST("/login", AdminHandler.LoginAdmin)
@@ -175,6 +236,18 @@ func main() {
 	adminAuthGroup.POST("/team/approve/:teamname", repository.AdminCookieAuth, AdminHandler.AdminApproveTeam)
 
 	adminAuthGroup.POST("/team/confirmation/:teamname", repository.AdminCookieAuth, AdminHandler.ConfirmTeam)
+
+	adminAuthGroup.POST("/send/mail", repository.AdminCookieAuth, EmailHandler.SendEmail)
+
+	adminAuthGroup.GET("/solution/:teamname", repository.AdminCookieAuth, FileHandler.DownloadSingleSolutionFile)
+
+	adminAuthGroup.POST("/upload/match/:teamname", repository.AdminCookieAuth, FileHandler.UploadMatchFile)
+
+	adminAuthGroup.GET("/event/teams", repository.AdminCookieAuth, TeamHandler.GetAllTeamsOnEvent)
+
+	adminAuthGroup.GET("/check/match/:teamname", repository.AdminCookieAuth, FileHandler.AdminCheckMatchFile)
+
+	adminAuthGroup.GET("/solutions", repository.AdminCookieAuth, FileHandler.GetAllFiles)
 
 	// Endpoint for status check
 	r.GET("/hearthbeat", func(c *gin.Context) {

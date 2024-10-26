@@ -40,7 +40,7 @@ func (h Handler) ValidateTeamScope() gin.HandlerFunc {
 		cookieUser, _ := ctx.Get("user")
 		hasAccessToTeamWithId := cookieUser.(model.Member).TeamID
 		team := &model.Team{}
-		result := repository.DB.Select("team_name,id,is_verified,approve_status,is_confirmed").Where("id = ?", hasAccessToTeamWithId).First(&team)
+		result := repository.DB.Select("team_name,id,is_verified,approve_status,is_confirmed,verification_token").Where("id = ?", hasAccessToTeamWithId).First(&team)
 		if result.Error != nil {
 			h.Logger.Error("The team for provided user do not exist or another retreive error occure")
 			ctx.JSON(http.StatusForbidden, gin.H{
@@ -63,6 +63,7 @@ func (h Handler) ValidateTeamScope() gin.HandlerFunc {
 		ctx.Set("team_is_confirmed", team.IsConfirmed)
 		ctx.Set("team_approve", team.ApproveStatus)
 		ctx.Set("team_name", team.TeamName)
+		ctx.Set("team_verification_token", team.VerificationToken)
 		ctx.Next()
 	}
 

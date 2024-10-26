@@ -1,6 +1,10 @@
 package model
 
-import "gorm.io/datatypes"
+import (
+	"time"
+
+	"gorm.io/datatypes"
+)
 
 // Login response
 type LoginResponse struct {
@@ -75,4 +79,21 @@ type UpdateMemberResponseBody struct {
 	Occupation     string         `json:"occupation"`
 	DietPreference string         `json:"dietPreference"`
 	School         string         `json:"school,omitempty"`
+}
+
+type GetAllTeamsOnEventResponse struct {
+	Teams []TeamOnEvent `json:"teams"`
+}
+
+type TeamOnEvent struct {
+	TeamName           string    `json:"teamName"`
+	ConfirmationStatus bool      `json:"confirmationStatus"`
+	SolutionStatus     bool      `json:"solutionStatus"`
+	ApprovedStatus     string    `json:"approvedStatus"`
+	FileSendAt         time.Time `json:"createdAt"`
+}
+
+type CheckMatchResponse struct {
+	IsMatchFieldExist bool   `json:"isMatchFileSend"`
+	MatchFileName     string `json:""`
 }

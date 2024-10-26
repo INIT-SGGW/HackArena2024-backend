@@ -11,9 +11,12 @@ type Team struct {
 	TeamName          string `gorm:"uniqueIndex"`
 	VerificationToken string
 	IsVerified        bool
-	IsConfirmed       bool     `gorm:"default:false"`
-	ApproveStatus     string   `gorm:"default:pending"`
-	Members           []Member `gorm:"foreignKey:team_id"`
+	IsConfirmed       bool         `gorm:"default:false"`
+	ApproveStatus     string       `gorm:"default:pending"`
+	IsSolutionSend    bool         `gorm:"default:false"`
+	SolutionFile      SolutionFile `gorm:"foreignKey:team_id"`
+	MatchFile         MatchFile    `gorm:"foreignKey:team_id"`
+	Members           []Member     `gorm:"foreignKey:team_id"`
 }
 
 type Member struct {
@@ -31,6 +34,18 @@ type Member struct {
 	IsVerified     bool
 }
 
+type SolutionFile struct {
+	gorm.Model
+	TeamID   uint
+	FileName string
+}
+
+type MatchFile struct {
+	gorm.Model
+	TeamID   uint
+	FileName string
+}
+
 // Admin account DB Object
 type HackArenaAdmin struct {
 	gorm.Model
@@ -39,4 +54,16 @@ type HackArenaAdmin struct {
 	User      string `gorm:"index:idx_admin_name,unique"`
 	Password  string
 	Privilage string `gorm:"default:SuperUser"`
+}
+
+// Models for email operations
+type MailingGroupFilter struct {
+	gorm.Model
+	FilterName string `gorm:"index:idx_filter_name,unique"`
+	Query      string
+}
+
+type EmailTemplates struct {
+	TemplateName string `gorm:"index:idx_template_name,unique"`
+	FileName     string
 }
