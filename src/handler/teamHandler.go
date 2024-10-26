@@ -262,7 +262,7 @@ func (th TeamHandler) GetAllTeamsOnEvent(ctx *gin.Context) {
 	defer th.Handler.Logger.Sync()
 
 	teams := []model.Team{}
-	err := repository.DB.Model(&model.Team{}).Where("approve_status = 'approved'").Find(&teams).Error
+	err := repository.DB.Model(&model.Team{}).Where("approve_status = 'approved'").Preload("SolutionFile").Find(&teams).Error
 	if err != nil {
 		th.Handler.Logger.Error("Error retreiving teams from Database",
 			zap.Error(err))
@@ -280,6 +280,7 @@ func (th TeamHandler) GetAllTeamsOnEvent(ctx *gin.Context) {
 			ConfirmationStatus: team.IsConfirmed,
 			SolutionStatus:     team.IsSolutionSend,
 			ApprovedStatus:     team.ApproveStatus,
+			FileSendAt:         team.SolutionFile.UpdatedAt,
 		}
 		teamsOnEvent = append(teamsOnEvent, *newTeamOnEvent)
 	}

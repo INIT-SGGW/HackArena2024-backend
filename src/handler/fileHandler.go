@@ -129,8 +129,20 @@ func (fh FileHandler) UploadSolutionFile(ctx *gin.Context) {
 		fh.Handler.Logger.Info("File sucesfully added")
 
 	} else {
-		fh.Handler.Logger.Info("There is already file in databse for team, skip inserts",
+		fh.Handler.Logger.Info("There is already file in databse for team, update the data",
 			zap.String("teamName", teamName))
+		fileModel.FileName = dst
+		err = repository.DB.Model(&model.SolutionFile{}).Where("team_id = ?", teamID).Update("file_name", dst).Error
+		if err != nil {
+			fh.Handler.Logger.Error("Error during DB save")
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error":    "Error during updating file name data",
+				"teamName": teamName,
+				"file":     file.Filename,
+			})
+			return
+		}
+		fh.Handler.Logger.Info("File sucesfully added")
 	}
 
 	ctx.AbortWithStatus(http.StatusCreated)
