@@ -33,6 +33,7 @@ The project use following environmental variables:
 ```env
 HACKDB_USER="DBUserName"
 HACKDB_PWD="PassForDBUser"
+HACKDB_CONFIG_PATH="/path/to/database/config"
 HA_API_KEY="ApiKeyForStandardRequest"
 HA_ADMIN_API_KEY="ApiKeyForAdminRequests"
 SECRET_JWT="JWT-secret"
@@ -44,6 +45,7 @@ HA_WEB_URL="AdressToFrontendPage"
 HA_EMAIL_TEMP_PATH="PathToEmailTemplatesFolder"
 HA_ADMIN_FILE_STORAGE="PathToStoreFilesUploadedByAdmins"
 HA_ALL_FILE_STORAGE="PathForTemporalStorageWithAllSolutions"
+HA_LOG_PATH="/absolute/path/to/file.log"
 ```
 
 Also server use folowing env file for db detailes:

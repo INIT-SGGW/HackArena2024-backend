@@ -8,6 +8,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -24,7 +26,14 @@ var DB *gorm.DB
 var Config *DBConfig
 
 func InitializeConfig() {
-	viper.AddConfigPath("/etc/hackarena-backend/config") //Base config path for application
+
+	configPath, exist := os.LookupEnv("HACKDB_CONFIG_PATH")
+	if !exist {
+		fmt.Println("The HACKDB_CONFIG_PATH environmental variable is missing")
+		os.Exit(2)
+	}
+
+	viper.AddConfigPath(configPath) //Base config path for application
 	viper.SetConfigName("dbconf")
 	viper.SetConfigType("env")
 	viper.AutomaticEnv()
@@ -52,10 +61,10 @@ func getConnectionString() string {
 	return psqlInfo
 }
 
-func ConnectDataBase() {
-	var err error
-	logger, _ := zap.NewProduction()
+func ConnectDataBase(logger *zap.Logger) {
 	defer logger.Sync()
+	var err error
+
 	psqlinfo := getConnectionString()
 	DB, err = gorm.Open(postgres.Open(psqlinfo))
 
@@ -67,4 +76,40 @@ func ConnectDataBase() {
 }
 func SyncDB() {
 	DB.AutoMigrate(&model.Team{}, &model.Member{}, &model.SolutionFile{}, &model.MatchFile{}, &model.HackArenaAdmin{}, &model.MailingGroupFilter{}, &model.EmailTemplates{})
+}
+
+func CreateLogger() *zap.Logger {
+	stdout := zapcore.AddSync(os.Stdout)
+
+	logPath, exist := os.LookupEnv("HA_LOG_PATH")
+	if !exist {
+		fmt.Println("The HA_LOG_PATH environmental variable is missing")
+		os.Exit(2)
+	}
+
+	file := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 1,
+		MaxAge:     3, // days
+	})
+
+	level := zap.NewAtomicLevelAt(zap.InfoLevel)
+
+	productionCfg := zap.NewProductionEncoderConfig()
+	productionCfg.TimeKey = "timestamp"
+	productionCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	developmentCfg := zap.NewDevelopmentEncoderConfig()
+	developmentCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+
+	consoleEncoder := zapcore.NewConsoleEncoder(developmentCfg)
+	fileEncoder := zapcore.NewJSONEncoder(productionCfg)
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(consoleEncoder, stdout, level),
+		zapcore.NewCore(fileEncoder, file, level),
+	)
+
+	return zap.New(core)
 }

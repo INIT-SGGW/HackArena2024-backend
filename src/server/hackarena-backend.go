@@ -5,11 +5,10 @@ import (
 	"INIT-SGGW/hackarena-backend/repository"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 func main() {
-	logger, _ := zap.NewProduction()
+	logger := repository.CreateLogger()
 	defer logger.Sync()
 
 	r := gin.Default()
@@ -20,7 +19,7 @@ func main() {
 	adminAuthGroup := r.Group("/api/v2/admin")
 	adminAuthGroup.Use(repository.AdminCORSMiddleware(), repository.AuthMiddleweare(), repository.AdminAuthMiddleweare())
 	repository.InitializeConfig()
-	repository.ConnectDataBase()
+	repository.ConnectDataBase(logger)
 
 	repository.SyncDB() // DBAutoMigration
 
