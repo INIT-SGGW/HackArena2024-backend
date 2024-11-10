@@ -29,9 +29,9 @@ Builds the app for production, it builds as single binary.
 
 The project use ORM libary [GORM](https://gorm.io/index.html) as a result the db migration is performd using `repository.SyncDB()` (After connecting to DB), which was declared in `model\model.go` file.
 
-The project use following envirometal variables:ACKDB_USER="postgres"
-
+The project use following environmental variables:
 ```env
+HACKDB_USER="DBUserName"
 HACKDB_PWD="PassForDBUser"
 HA_API_KEY="ApiKeyForStandardRequest"
 HA_ADMIN_API_KEY="ApiKeyForAdminRequests"
